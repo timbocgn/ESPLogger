@@ -32,68 +32,28 @@
 
 ///////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef INFO_MANAGER_H_
-#define	INFO_MANAGER_H_
+#ifndef CSENSOR_H_
+#define	CSENSOR_H_
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include <string>
 #include "sdkconfig.h"
-#include "freertos/timers.h"
+#include "cJSON.h"
 
-
-enum InfoMode
-{
-    InfoMode_Nothing,
-    InfoMode_WaitToConnect,
-    InfoMode_Connected,
-    InfoMode_Bootstrap,
-};
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-class InfoManager
+// --- this is an abstract base class forming the interface for all sensors
+
+class CSensor
 {
 public:
-    InfoManager()
-    {
-        m_InfoMode = InfoMode_Nothing;
-    }
-
-    esp_err_t InitManager(void);
-
-    bool IsBootstrapActivated(void)
-    {
-        return gpio_get_level(m_bootstrappin) == 1;
-    }
-
-    void SetInfoPin(bool f_value)
-    {
-        gpio_set_level(m_infopin,f_value ? 1 : 0);
-    }
-
-    void SetMode(InfoMode f_mode)
-    {
-        m_InfoMode = f_mode;
-    }
-
-    InfoMode GetMode(void) const
-    {
-        return m_InfoMode;
-    }
-
-private:
-
-    gpio_num_t      m_bootstrappin;
-    gpio_num_t      m_infopin;
-
-    TimerHandle_t   m_timer;
-    InfoMode        m_InfoMode;
+    virtual std::string GetSensorValueString(void) = 0;
+ 	virtual bool PerformMeasurement(void) = 0;
+ 	virtual bool SetupSensor(gpio_num_t *f_pins,int *f_data) = 0;
+    virtual void AddValuesToJSON_MQTT(cJSON *f_root) = 0;
+    virtual void AddValuesToJSON_API(cJSON *f_root) = 0;
 };
-
-////////////////////////////////////////////////////////////////////////////////////////
-
-
-extern InfoManager g_InfoManager;
-
 
 #endif

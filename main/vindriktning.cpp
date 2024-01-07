@@ -4,7 +4,7 @@
     ESPDustLogger       
     
     ESP32 based IoT Device for air quality logging featuring an MQTT client and 
-    REST API acess. Works in conjunction with a VINDRIKTNING air sensor from IKEA.
+    REST API access. Works in conjunction with a VINDRIKTNING air sensor from IKEA.
     
 
 	This code is based on Bertrik Sikken PM1006 class available at
@@ -40,12 +40,14 @@
 #include <math.h>
 #include <stdio.h>
 #include <cstring>
+#include <ctime>
 #include "freertos/FreeRTOS.h"
 #include "driver/uart.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "esp_task_wdt.h"
 
+#include "sensor_config.h"
 #include "vindriktning.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -234,7 +236,7 @@ static void uart_task(void *arg)
 	{
         // --- Read data from the UART. This might be one or more bytes in the middle of a datagram
 
-        int len = uart_read_bytes(l_this->GetUart(), l_data, BUF_SIZE, 20 / portTICK_RATE_MS);
+        int len = uart_read_bytes(l_this->GetUart(), l_data, BUF_SIZE, 20 / portTICK_PERIOD_MS);
 
 		// --- add them to the shifter
 
@@ -281,6 +283,7 @@ bool CVindriktning::SetupSensor(gpio_num_t f_data,uart_port_t f_uart)
         .parity    = UART_PARITY_DISABLE,
         .stop_bits = UART_STOP_BITS_1,
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+		.rx_flow_ctrl_thresh = 122,
         .source_clk = UART_SCLK_APB,
     };
 
@@ -301,7 +304,82 @@ bool CVindriktning::SetupSensor(gpio_num_t f_data,uart_port_t f_uart)
 
 bool CVindriktning::PerformMeasurement(void)
 {
-	// ---- do nothing here. Values are populated asynchronously 
+#ifdef SENSOR_CONFIG_STUB_SENSORS
+		// ---- do some random magic to generate some values
 
+		m_pm2 	= rand();
+		m_pm10 	= rand();
+		m_pm1  	= rand(); 
+
+		return true;
+#else
+		// ---- do nothing here. Values are populated asynchronously 
+
+		return true;
+
+#endif
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+std::string CVindriktning::GetSensorValueString(void)
+{
+	char l_buf[200];
+	snprintf(l_buf,200,"CVindriktning: pm1: %f ppm / pm2: %f ppm / pm10: %f ppm",GetPM1(),GetPM2(),GetPM10());
+
+	return std::string(l_buf);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+void CVindriktning::AddValuesToJSON_MQTT(cJSON *f_root)
+{
+	cJSON_AddNumberToObject(f_root, "pm1", GetPM1());
+	cJSON_AddNumberToObject(f_root, "pm2", GetPM2());
+	cJSON_AddNumberToObject(f_root, "pm10", GetPM10());	
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+void CVindriktning::AddValuesToJSON_API(cJSON *f_root)
+{
+    cJSON *pm1 	= cJSON_CreateObject();
+    cJSON *pm2 	= cJSON_CreateObject();
+    cJSON *pm10 = cJSON_CreateObject();
+
+	cJSON_AddStringToObject(pm1, "unit", "ppm (1 um)");
+	cJSON_AddNumberToObject(pm1, "value", GetPM1());
+	cJSON_AddStringToObject(pm1, "text", "Small particles");
+
+	cJSON_AddStringToObject(pm2, "unit", "ppm (2.5 um)");
+	cJSON_AddNumberToObject(pm2, "value", GetPM2());
+	cJSON_AddStringToObject(pm2, "text", "Medium particles");
+
+	cJSON_AddStringToObject(pm10, "unit", "ppm (10 um)");
+	cJSON_AddNumberToObject(pm10, "value", GetPM10());
+	cJSON_AddStringToObject(pm10, "text", "Big particles");
+
+	cJSON_AddItemToObject(f_root,"pm1",pm1);
+	cJSON_AddItemToObject(f_root,"pm2",pm2);
+	cJSON_AddItemToObject(f_root,"pm10",pm10);
+
+	cJSON_AddStringToObject(f_root, "SensorType", "Vindriktning Particles Sensor");
+
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+bool CVindriktning::SetupSensor(gpio_num_t *f_pins,int *f_data)
+{
+#ifdef SENSOR_CONFIG_STUB_SENSORS
+	
+	srand((unsigned)time(0)); 	
 	return true;
+
+#else
+	// --- simple wrapper for this sensor: pin 1 is the uart input pin and param 1 is the uart number
+
+	return SetupSensor(f_pins[0],(uart_port_t)f_data[0]);
+
+#endif
 }

@@ -1,10 +1,9 @@
-<template>
-  
-  <v-container fluid>
-    <v-row align="center" justify="center"  > 
-      <v-col cols="10">
+<template> 
+  <v-container fluid full-height>
+    <v-row no-gutters> 
+      <v-col no-gutters>
         
-        <v-card class="overflow-hidden" > 
+        <v-card > 
 
           <v-toolbar flat color="grey darken-1" dense>
             <v-toolbar-title class="font-weight-light" color="white">Device Profile</v-toolbar-title>
@@ -63,6 +62,11 @@
 
 <script>
 
+
+// ---- our API call library (npm i axios)
+
+import axios from 'axios'
+
 import { mdiEye } from '@mdi/js'
 import { mdiEyeOff } from '@mdi/js'
 
@@ -104,7 +108,7 @@ export default {
     {
 
       this.loading_aps = true;
-      this.$ajax
+      axios
           .get("/api/v1/apscan", {timeout: 60000})
           .then(data => {
 
@@ -113,7 +117,7 @@ export default {
             this.aps          = data.data.WiFI_Scan;
             this.loading_aps  = false;
 
-            this.errtext      = "Scan successfull...click into Wifi access point field to see results";
+            this.errtext      = "Scan successful...click into Wifi access point field to see results";
             this.showerr      = true;
 
           })
@@ -132,7 +136,7 @@ export default {
     {
       this.loading_aps  = true;
 
-      this.$ajax
+      axios
         .post("/api/v1/config", {
             Wifi_SSID: this.wifi_name,
             Wifi_Password: this.wifi_pass,
@@ -161,11 +165,11 @@ export default {
 
   mounted() 
     {
-      this.$ajax
+      axios
           .get("/api/v1/config")
           .then(data => {
 
-            //console.log("--- config api call received...");
+            console.log("--- config api call received...");
 
             this.device_name  = data.data.Device_Name;
             this.wifi_name    = data.data.Wifi_SSID;

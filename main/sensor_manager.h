@@ -1,14 +1,14 @@
 /*
     --------------------------------------------------------------------------------
 
-    ESPDustLogger       
+    way2.net ESPLogger       
     
-    ESP32 based IoT Device for air quality logging featuring an MQTT client and 
-    REST API acess. Works in conjunction with a VINDRIKTNING air sensor from IKEA.
+    ESP32 based IoT Device for various sensor logging featuring an MQTT client and 
+    REST API access. 
     
     --------------------------------------------------------------------------------
 
-    Copyright (c) 2021 Tim Hagemann / way2.net Services
+    Copyright (c) 2024 Tim Hagemann / way2.net Services
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -37,51 +37,13 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "vindriktning.h"
+#include <string>
+
+#include "sensor_config.h"
+
+
 #include "sdkconfig.h"
-
-////////////////////////////////////////////////////////////////////////////////////////
-
-/*
-class SensorWrapper
-{
-
-public:
-    SensorWrapper(void)
-    {
-
-    }
-
-	bool SetupSensor(gpio_num_t f_sck,gpio_num_t f_data)
-    {
-        return m_Sensor.SetupSensor(f_sck,f_data);
-    }
-
-	bool PerformMeasurement(void)
-    {
-        return m_Sensor.PerformMeasurement();
-    }
-
-	float GetTemp(void) 
-	{
-		return m_Sensor.GetTemp();
-	}
-
-	float GetRH(void) 
-	{
-		return m_Sensor.GetRH();
-	}
-
-	float GetDP(void) 
-	{
-		return m_Sensor.GetDP();
-	}
-
-private:
-
-    SHT1x m_Sensor;
-};
-*/
+#include "csensor.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -96,19 +58,19 @@ public:
 
     // --- low level getters
 
-    CVindriktning &GetSensor(int f_idx)
+    CSensor *GetSensor(int f_idx)
     {
-        assert(f_idx < CONFIG_TEMP_SENSOR_CNT);
+        assert(f_idx < SENSOR_CONFIG_SENSOR_CNT);
         return m_Sensors[f_idx];
     }
 
     int GetSensorCount(void) const
     {
-        return CONFIG_TEMP_SENSOR_CNT;
+        return SENSOR_CONFIG_SENSOR_CNT;
     }
 
 private:
-    CVindriktning m_Sensors[CONFIG_TEMP_SENSOR_CNT];
+    CSensor *m_Sensors[SENSOR_CONFIG_SENSOR_CNT];
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

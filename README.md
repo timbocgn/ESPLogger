@@ -157,8 +157,6 @@ The button is pulled up to 3.3V and gets pulled down to GND when you press the b
 * [webpack](https://webpack.js.org) - Module bundler for the vue app
 * [pm1006 on github](https://github.com/bertrik/pm1006) - code for receiving the sensor data
 
-	
-
 ## Authors
 
 * **Tim Hagemann** - *Initial work* - https://github.com/timbocgn

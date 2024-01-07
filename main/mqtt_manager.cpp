@@ -1,14 +1,14 @@
 /*
     --------------------------------------------------------------------------------
 
-    ESPDustLogger       
+    way2.net ESPLogger       
     
-    ESP32 based IoT Device for air quality logging featuring an MQTT client and 
-    REST API acess. Works in conjunction with a VINDRIKTNING air sensor from IKEA.
+    ESP32 based IoT Device for various sensor logging featuring an MQTT client and 
+    REST API access. 
     
     --------------------------------------------------------------------------------
 
-    Copyright (c) 2021 Tim Hagemann / way2.net Services
+    Copyright (c) 2024 Tim Hagemann / way2.net Services
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -55,7 +55,7 @@
 #include "esp_netif.h"
 #include "esp_event.h"
 #include "esp_log.h"
-#include "mdns.h"
+//#include "mdns.h"
 #include "mqtt_client.h"
 
 #include "config_manager.h"
@@ -116,11 +116,13 @@ void MqttManager::ProcessCallback(void)
             // ---- now ask the sensor for the values and create a JSON from that    
 
             cJSON *root = cJSON_CreateObject();
-            
-            cJSON_AddNumberToObject(root, "pm1", g_SensorManager.GetSensor(l_senidx).GetPM1());
+            g_SensorManager.GetSensor(l_senidx)->AddValuesToJSON_MQTT(root);
+
+/*            
+            cJSON_AddNumberToObject(root, "pm1", ;
             cJSON_AddNumberToObject(root, "pm2", g_SensorManager.GetSensor(l_senidx).GetPM2());
             cJSON_AddNumberToObject(root, "pm10", g_SensorManager.GetSensor(l_senidx).GetPM10());
-            
+  */          
             const char *sys_info = cJSON_Print(root);
             
             char l_snum[5];
@@ -149,16 +151,16 @@ void MqttManager::ProcessCallback(void)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-esp_err_t MqttManager::InitManager(void)
+esp_err_t MqttManager::SetupMqtt(void)
 {
-    ESP_LOGE(TAG, "initmgr");
+    ESP_LOGI(TAG, "MqttManager::SetupMqtt()");
 
     std::string l_server = g_ConfigManager.GetStringValue(CFMGR_MQTT_SERVER);
 
     esp_mqtt_client_config_t mqtt_cfg;
     memset(&mqtt_cfg,0,sizeof(esp_mqtt_client_config_t));
 
-    mqtt_cfg.uri = l_server.c_str();
+    mqtt_cfg.broker.address.uri = l_server.c_str();
 
     ESP_LOGE(TAG, "before esp_mqtt_client_init");
     m_mqtt_hdl = esp_mqtt_client_init(&mqtt_cfg);
@@ -175,18 +177,64 @@ esp_err_t MqttManager::InitManager(void)
         ESP_LOGE(TAG, "Error on esp_mqtt_client_start (%s): %d", l_server.c_str(),l_ee);
         return l_ee;
     }
-   ESP_LOGE(TAG, "after esp_mqtt_client_start");
 
-    // ---- get all config values to the manager
-
-    UpdateConfig();
+    ESP_LOGE(TAG, "after esp_mqtt_client_start");
 
     // ---- timer stuff
 
     m_timer = xTimerCreate( "T1", 1000 / portTICK_PERIOD_MS, pdTRUE, (void *)this, prvMqttTimerCallback);
     xTimerStart( m_timer, 0 );
 
+    return ESP_OK;
 
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+void MqttManager::Shutdown(void)
+{
+    // --- stop any timer
+
+    xTimerStop(m_timer,0);
+    xTimerDelete(m_timer,0);
+    m_timer = NULL;
+
+    // --- stop MQTT client
+
+    esp_mqtt_client_stop(m_mqtt_hdl);
+    esp_mqtt_client_destroy(m_mqtt_hdl);
+    m_mqtt_hdl = NULL;
+
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+void MqttManager::ReadConfig(void)
+{
+    // ---- get some flag since we use them frequently
+
+    m_mqtt_enabled = g_ConfigManager.GetIntValue(CFMGR_MQTT_ENABLE) == 1;
+    m_mqtt_delay = g_ConfigManager.GetIntValue(CFMGR_MQTT_TIME);
+
+    m_delay_current = m_mqtt_delay;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+esp_err_t MqttManager::InitManager(void)
+{
+    ESP_LOGI(TAG, "MqttManager::InitManager()");
+
+    // --- read config vars
+
+    ReadConfig();
+
+    // ---- and setup the 
+
+    if (m_mqtt_enabled)
+    {
+        return SetupMqtt();
+    }
 
     return ESP_OK;
 }
@@ -195,20 +243,49 @@ esp_err_t MqttManager::InitManager(void)
 
 void MqttManager::UpdateConfig(void)
 {
-    // ---- get some flag since we use them frequently
+    // --- read config vars
 
-    m_mqtt_enabled = g_ConfigManager.GetIntValue(CFMGR_MQTT_ENABLE) == 1;
-    m_mqtt_delay = g_ConfigManager.GetIntValue(CFMGR_MQTT_TIME);
+    ReadConfig();   
 
-    m_delay_current = m_mqtt_delay;
+    if (m_mqtt_enabled)
+    {
+        // --- we want MQTT
+
+        if (m_mqtt_hdl)
+        {
+            // ---- we already are up and running: so just update the potentially changed URI
+            
+            std::string l_server = g_ConfigManager.GetStringValue(CFMGR_MQTT_SERVER);
+            esp_mqtt_client_set_uri(m_mqtt_hdl,l_server.c_str());
+        }
+        else
+        {
+            // --- MQTT was switched on...so do the full party
+
+            SetupMqtt();
+        }        
+    }
+    else
+    {
+        // --- we DONT want MQTT
+
+        if (m_mqtt_hdl)
+        {
+            // ---- remove all
+
+            Shutdown();
+        }
+        else
+        {
+            // --- do nothing
+        }
+    }
 
     // ---- the broker might have changed, so close the existing connection
 
     if (m_mqtt_hdl)
     {
-        std::string l_server = g_ConfigManager.GetStringValue(CFMGR_MQTT_SERVER);
-
-        esp_mqtt_client_set_uri(m_mqtt_hdl,l_server.c_str());
+        
     }
 
 }

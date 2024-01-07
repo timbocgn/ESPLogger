@@ -21,7 +21,8 @@
             "name": "ESP32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/Users/thagemann/Documents/Dev/esp-idf/components/**"
+                "/Users/thagemann/Documents/Dev/esp-idf/**",
+                "/Users/thagemann/.espressif/tools/**"
             ],
             "defines": [],
             "macFrameworkPath": [

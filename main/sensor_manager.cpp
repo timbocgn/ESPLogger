@@ -1,14 +1,14 @@
 /*
     --------------------------------------------------------------------------------
 
-    ESPDustLogger       
+    way2.net ESPLogger       
     
-    ESP32 based IoT Device for air quality logging featuring an MQTT client and 
-    REST API acess. Works in conjunction with a VINDRIKTNING air sensor from IKEA.
+    ESP32 based IoT Device for various sensor logging featuring an MQTT client and 
+    REST API access. 
     
     --------------------------------------------------------------------------------
 
-    Copyright (c) 2021 Tim Hagemann / way2.net Services
+    Copyright (c) 2024 Tim Hagemann / way2.net Services
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -40,6 +40,9 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
 
+#include "vindriktning.h"
+#include "ESP32_SHT1x.h"
+
 #include "sensor_manager.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -56,55 +59,60 @@ void SensorManager::ProcessMeasurements(void)
 {
    // --- now measure on all sensors
 
-    for (int i = 0; i < CONFIG_TEMP_SENSOR_CNT; ++i)
+    for (int i = 0; i < SENSOR_CONFIG_SENSOR_CNT; ++i)
     {
-        if (!m_Sensors[i].PerformMeasurement())
+        if (!m_Sensors[i]->PerformMeasurement())
         {
-            ESP_LOGE(TAG, "Failed to perform a mesurement on sensor %d", i);
+            ESP_LOGE(TAG, "Failed to perform a measurement on sensor %d", i);
         }
         else
         {
-            ESP_LOGI(TAG, "Sensor %d: pm1 %f, pm2.5 %f, pm10 %f",i,m_Sensors[i].GetPM1(),m_Sensors[i].GetPM2(),m_Sensors[i].GetPM10());
+            ESP_LOGI(TAG, "Sensor %d: %s",i,m_Sensors[i]->GetSensorValueString().c_str());
         }
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#define CONFIG_SENS(num) {  gpio_num_t l_pins[] = SENSOR_CONFIG_SENSOR ## num ## _PINS;\
+                            int l_data[]        = SENSOR_CONFIG_SENSOR ## num ## _DATA;\
+                            ESP_LOGI(TAG, "Configure Sensor %d: %d %d %d %d %d / %d %d %d %d %d", num, l_pins[0],l_pins[1],l_pins[2],l_pins[3],l_pins[4],l_data[0],l_data[1],l_data[2],l_data[3],l_data[4]);\
+                            m_Sensors[num-1] = new SENSOR_CONFIG_SENSOR ## num ## _CLASS;\
+                            assert(m_Sensors[num-1] != NULL);\
+                            ESP_LOGI(TAG, "Sensor pointer %p. Initialize...",m_Sensors[num-1]);\
+                            assert(m_Sensors[num-1]->SetupSensor(l_pins,l_data));\
+                            ESP_LOGI(TAG, "Sensor pointer %p. ...finished.",m_Sensors[num-1]);\
+                        }
+
+////////////////////////////////////////////////////////////////////////////////////////
+
 void SensorManager::InitSensors(void)
 {
-    // --- first get the #define config data into an array
+    // ---- this function creates sensor instances and configures them based on the defines
+    //      in sensor_config.h - please change the configuration there!
 
-    gpio_num_t l_DATA[CONFIG_TEMP_SENSOR_CNT];
-    uart_port_t l_UART[CONFIG_TEMP_SENSOR_CNT];
+    ESP_LOGI(TAG, "InitSensors");
 
-#if CONFIG_TEMP_SENSOR_CNT >= 1
-    l_DATA[0] = (gpio_num_t)CONFIG_TEMP_SENSOR1_DATA_GPIO;
-    l_UART[0] = (uart_port_t)CONFIG_TEMP_SENSOR1_UART_PORT_NUM;
-#endif
+    // ---- nasty macro magic - see definiton above
 
-#if CONFIG_TEMP_SENSOR_CNT >= 2
-    l_DATA[1] = (gpio_num_t)CONFIG_TEMP_SENSOR2_DATA_GPIO;
-    l_UART[1] = (uart_port_t)CONFIG_TEMP_SENSOR2_UART_PORT_NUM;
-#endif
+    #if SENSOR_CONFIG_SENSOR_CNT >= 1
+            CONFIG_SENS(1)     
+    #endif
 
-#if CONFIG_TEMP_SENSOR_CNT >= 3
-    l_DATA[2] = (gpio_num_t)CONFIG_TEMP_SENSOR3_DATA_GPIO;
-    l_UART[2] = (uart_port_t)CONFIG_TEMP_SENSOR3_UART_PORT_NUM;
-#endif
+    #if SENSOR_CONFIG_SENSOR_CNT >= 2
+            CONFIG_SENS(2)     
+    #endif
 
-#if CONFIG_TEMP_SENSOR_CNT >= 4
-    #error You need to add additional lines here!
-#endif
+    #if SENSOR_CONFIG_SENSOR_CNT >= 3
+            CONFIG_SENS(3)     
+    #endif
 
-    // --- now configure all sensors
+    #if SENSOR_CONFIG_SENSOR_CNT >= 4
+            CONFIG_SENS(4)     
+    #endif
 
-    for (int i = 0; i < CONFIG_TEMP_SENSOR_CNT; ++i)
-    {
-        ESP_LOGI(TAG, "Sensor %d GPIOs: DATA %d", i,l_DATA[i]);
-        if (!m_Sensors[i].SetupSensor(l_DATA[i],l_UART[0]))
-        {
-            ESP_LOGE(TAG, "Failed to initialize sensor %d", i);
-        }
-    }
+    #if SENSOR_CONFIG_SENSOR_CNT >= 5
+        #error You need to add additional lines here!
+    #endif
+
 }

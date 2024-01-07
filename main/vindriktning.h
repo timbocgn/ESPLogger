@@ -4,7 +4,7 @@
     ESPDustLogger       
     
     ESP32 based IoT Device for air quality logging featuring an MQTT client and 
-    REST API acess. Works in conjunction with a VINDRIKTNING air sensor from IKEA.
+    REST API access. Works in conjunction with a VINDRIKTNING air sensor from IKEA.
     
     --------------------------------------------------------------------------------
 
@@ -39,10 +39,11 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#include "csensor.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-class CVindriktning
+class CVindriktning : public CSensor
 {
 
 public:
@@ -54,7 +55,6 @@ public:
 	// --- actions
 
 	bool SetupSensor(gpio_num_t f_data, uart_port_t f_uart);
-	bool PerformMeasurement(void);
 
 	// --- getter
 
@@ -73,7 +73,7 @@ public:
 		return m_pm10;
 	}
 
-	// --- internal funcitons do not use
+	// --- internal functions do not use
 
 	gpio_num_t GetDataPin(void) { return m_pin_data; }
 	uart_port_t GetUart(void) { return m_uart; }
@@ -84,6 +84,12 @@ public:
 		m_pm10 	= f_pm10;
 		m_pm1 	= f_pm1;
 	}
+
+	virtual std::string GetSensorValueString(void);
+ 	virtual bool PerformMeasurement(void);
+    virtual void AddValuesToJSON_MQTT(cJSON *f_root);
+    virtual void AddValuesToJSON_API(cJSON *f_root);
+ 	virtual bool SetupSensor(gpio_num_t *f_pins,int *f_data);	
 
 private:
 

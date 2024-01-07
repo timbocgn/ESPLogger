@@ -1,14 +1,14 @@
 /*
     --------------------------------------------------------------------------------
 
-    ESPDustLogger       
+    way2.net ESPLogger       
     
-    ESP32 based IoT Device for air quality logging featuring an MQTT client and 
-    REST API acess. Works in conjunction with a VINDRIKTNING air sensor from IKEA.
+    ESP32 based IoT Device for various sensor logging featuring an MQTT client and 
+    REST API access. 
     
     --------------------------------------------------------------------------------
 
-    Copyright (c) 2021 Tim Hagemann / way2.net Services
+    Copyright (c) 2024 Tim Hagemann / way2.net Services
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -48,6 +48,7 @@
 #include "esp_wifi.h"
 
 #include "sensor_manager.h"
+#include "sensor_config.h"
 #include "config_manager.h"
 #include "config_manager_defines.h"
 #include "mqtt_manager.h"
@@ -57,7 +58,7 @@
 static const char *REST_TAG = "esp-rest";
 
 #define FILE_PATH_MAX (ESP_VFS_PATH_MAX + 128)
-#define SCRATCH_BUFSIZE (10240)
+#define SCRATCH_BUFSIZE (100*1024)
 
 #define DEFAULT_SCAN_LIST_SIZE 128
 
@@ -161,26 +162,54 @@ static esp_err_t set_content_type_from_file(httpd_req_t *req, const char *filepa
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-/* Send HTTP response with the contents of the requested file */
+// ---- this is the default handler of the http server 
+
 static esp_err_t rest_common_get_handler(httpd_req_t *req)
 {
     ESP_LOGI(REST_TAG,"rest_common_get_handler %s",req->uri);
 
     char filepath[FILE_PATH_MAX];
 
+    // --- get the base file path (aka "/www" from the user context to our buffer to be the base of the file path
+
     rest_server_context_t *rest_context = (rest_server_context_t *)req->user_ctx;
     strlcpy(filepath, rest_context->base_path, sizeof(filepath));
-    if (req->uri[strlen(req->uri) - 1] == '/') {
+    
+    // --- check if the user is requesting "/" and append "/index.html" in this case as the root file
+    
+    if (req->uri[strlen(req->uri) - 1] == '/') 
+    {
         strlcat(filepath, "/index.html", sizeof(filepath));
-    } else {
+    } 
+    else 
+    {
+        // --- simply add the uri path from the http context to our base path
         strlcat(filepath, req->uri, sizeof(filepath));
     }
-    int fd = open(filepath, O_RDONLY, 0);
-    if (fd == -1) {
-        ESP_LOGE(REST_TAG, "Failed to open file : %s", filepath);
-        /* Respond with 500 Internal Server Error */
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read existing file");
-        return ESP_FAIL;
+
+    // --- now try to open the file
+
+    int fd;
+    fd = open(filepath, O_RDONLY, 0);
+    if (fd == -1) 
+    {
+        // --- this failed. We're assuming that this is a deep link attempt (or a wrong path)
+        //     we handle this by defaulting to /index.html 
+
+        strlcpy(filepath, rest_context->base_path, sizeof(filepath));
+        strlcat(filepath, "/index.html", sizeof(filepath));
+        fd = open(filepath, O_RDONLY, 0);
+        if (fd == -1) 
+        {
+            // --- okay....if we cannot open this, there is something 
+
+            ESP_LOGE(REST_TAG, "Failed to open file : %s. Serious file system issue!", filepath);
+
+            // --- Respond with 500 Internal Server Error
+
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to open file - appliance has a severe issue!");
+            return ESP_FAIL;
+        }
     }
 
     set_content_type_from_file(req, filepath);
@@ -259,7 +288,7 @@ static esp_err_t dust_data_get_handler(httpd_req_t *req)
 
     // ---- check if this is a valid index
 
-    if (l_sensor_idx < 1 || l_sensor_idx > CONFIG_TEMP_SENSOR_CNT)
+    if (l_sensor_idx < 1 || l_sensor_idx > SENSOR_CONFIG_SENSOR_CNT)
     {
         ESP_LOGE(REST_TAG, "dust_data_get_handler: Illegal sensor index %d",l_sensor_idx);
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Illegal sensor index");
@@ -269,10 +298,9 @@ static esp_err_t dust_data_get_handler(httpd_req_t *req)
     // ---- now ask the sensor for the values and create a JSON from that    
 
     cJSON *root = cJSON_CreateObject();
-    
-    cJSON_AddNumberToObject(root, "pm1", g_SensorManager.GetSensor(l_sensor_idx-1).GetPM1());
-    cJSON_AddNumberToObject(root, "pm2", g_SensorManager.GetSensor(l_sensor_idx-1).GetPM2());
-    cJSON_AddNumberToObject(root, "pm10", g_SensorManager.GetSensor(l_sensor_idx-1).GetPM10());
+    g_SensorManager.GetSensor(l_sensor_idx-1)->AddValuesToJSON_API(root);
+
+    // ---- convert to a string and send the JSON back
     
     const char *sys_info = cJSON_Print(root);
     httpd_resp_sendstr(req, sys_info);
@@ -295,7 +323,7 @@ static esp_err_t dust_cnt_get_handler(httpd_req_t *req)
     
     cJSON *root = cJSON_CreateObject();
     
-    cJSON_AddNumberToObject(root, "cnt", CONFIG_TEMP_SENSOR_CNT);
+    cJSON_AddNumberToObject(root, "cnt", SENSOR_CONFIG_SENSOR_CNT);
     
     const char *sys_info = cJSON_Print(root);
     httpd_resp_sendstr(req, sys_info);
@@ -371,7 +399,7 @@ static esp_err_t config_apscan_handler(httpd_req_t *req)
         ESP_LOGI(REST_TAG, "RSSI \t\t%d", ap_info[i].rssi);
     }
 
-    delete ap_info;
+    delete [] ap_info;
 
     // --- now create JSON and send back
     

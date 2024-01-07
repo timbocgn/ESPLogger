@@ -1,33 +1,41 @@
+import './assets/main.css'
 
-import Vue from 'vue'
-import vuetify from '@/plugins/vuetify' // path to vuetify export
-
+import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
-import axios from 'axios'
-import store from './store'
+
+//Vue.config.productionTip = false
+
+// ---- some advanced input mask support (npm i vue-the-mask)
+
 import VueTheMask from 'vue-the-mask'
 
-Vue.config.productionTip = false
+// ---- Vuetify: Our basic app skeleton
 
-/*
-axios.interceptors.request.use(request => {
-  console.log('Starting Request', request)
-  return request
-})
+import 'vuetify/styles'
+import { createVuetify } from 'vuetify'
+import { aliases, mdi } from 'vuetify/iconsets/mdi'
+import * as components from 'vuetify/components'
+import * as directives from 'vuetify/directives'
 
-axios.interceptors.response.use(response => {
-  console.log('Response:', response)
-  return response
-})*/
+const vuetify = createVuetify({
+  components,
+  directives,
+  icons: {
+    defaultSet: 'mdi',
+    aliases,
+    sets: {
+      mdi,
+    },
+  }
+}
+)
 
-Vue.prototype.$ajax = axios
-Vue.use(VueTheMask)
+// ---- now build the app object
 
-new Vue({
-  vuetify,
-  router,
-  store,
-  render: h => h(App)
-}).$mount('#app')
+const app = createApp(App)
 
+app.use(router)
+app.use(vuetify)
+app.use(VueTheMask)
+app.mount('#app')

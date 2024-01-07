@@ -1,62 +1,60 @@
 <template>
-  <v-container>
-    <v-simple-table>
-    
-          <thead>
-            <tr>
-              <th colspan=3 class="text-left">Sensor Data</th>
-            </tr>
-          </thead>
+  <v-container fluid full-height>
+    <v-row> 
+      <v-col>
+        <template v-if="values.length != 0">
 
-          <tbody>   
-            <template v-if="values.length != 0">
-              <template v-for="(item,index) in values">
+              <template v-for="(item,index) in values" :key="index">
 
-                  <tr :key="index">
-                    <td>Sensor {{index+1}}</td>
-                    <td class="grey--text">Value</td> 
-                    <td class="grey--text">Unit</td> 
-                  </tr>
+                <v-card> 
+                  <v-card-title>Sensor {{ index+1 }}</v-card-title>
+                  <v-card-subtitle>{{ item.SensorType }}</v-card-subtitle>
+                  <v-card-text>
+                    <v-table density="compact">
 
-                  <template v-if="loaded[index]==true">
-                      <tr :key="index+1000">
-                        <td class="grey--text">Big particles</td> 
-                        <td>{{item.pm10.toFixed(2)}}</td>
-                        <td class="grey--text"> ppm (10 um)</td> 
+                      <thead><tr>
+                      <th class="text-left" style="width:33%">Item</th>
+                      <th class="text-left" style="width:33%">Value</th> 
+                      <th class="text-left" style="width:33%">Unit</th>
+                      </tr></thead>
+
+                      <tbody>
+                      <template v-for="(my_val,val_index) in item" :key="val_index">
+
+                      <tr>
+                        <td class="grey--text">{{my_val.text}}</td> 
+                        <td>{{my_val.value}}</td>
+                        <td class="grey--text">{{my_val.unit}}</td>                         
                       </tr>
+                      
 
-                      <tr :key="index+2000">
-                        <td class="grey--text">Medium particles</td> 
-                        <td>{{item.pm2.toFixed(2)}}</td>
-                        <td class="grey--text"> ppm (2.5 um)</td> 
-                      </tr>
+                      </template></tbody>
 
-                      <tr :key="index+3000">
-                        <td class="grey--text">Small particles</td> 
-                        <td>{{item.pm1.toFixed(2)}}</td>
-                        <td class="grey--text"> ppm (1 um)</td> 
-                      </tr>                  
-                  </template>
-                  <template v-else>
-                      <tr :key="index">
-                        <td colspan=3 class="grey--text" :key="index">Loading...</td> 
-                      </tr>
-                </template>
+                    </v-table>
+                  </v-card-text>
+                </v-card>
+
               </template>
-            </template>
-            <template v-else>
-              <tr>
-                <td colspan=3 class="grey--text">Loading...</td> 
-              </tr>
-            </template>
-          </tbody>
-      </v-simple-table> 
+        </template>
+
+        <template v-else>
+
+              <v-card title="Wait....." loading> 
+                <v-card-text>
+                  <p>Loading sensor data. Please wait.</p>
+                </v-card-text>
+              </v-card>
+
+        </template>        
+      </v-col>
+    </v-row>
   </v-container>
 </template>
 
-
-
 <script>
+
+import axios from 'axios'
+
 export default {
   data() {
     return {
@@ -82,11 +80,11 @@ export default {
 
     updateData: function() 
     {
-          this.$ajax
+           axios
           .get("/api/v1/sensorcnt")
-          .then(data => {
+          .then(cnt_call_result => {
 
-            this.sensorcnt  = data.data.cnt;
+            this.sensorcnt  = cnt_call_result.data.cnt;
 
             var i;
             for (i = 0; i < this.sensorcnt; i++) 
@@ -94,16 +92,16 @@ export default {
                 //console.log("Send request %d",i)
                 var urlidx = i+1;
     
-                this.$ajax
-                          .get("/api/v1/air/" + urlidx.toString(),{ id: i})
-                          .then(data => {
-                                          this.values[data.config.id] = {pm1: data.data.pm1, pm2: data.data.pm2, pm10: data.data.pm10};
-                                          this.loaded[data.config.id] = true;
+                
+                     axios.get("/api/v1/air/" + urlidx.toString(),{ id: i})
+                          .then(sensor_call_result => {
+                                          this.values[sensor_call_result.config.id] = sensor_call_result.data;
+                                          this.loaded[sensor_call_result.config.id] = true;
                                           this.$forceUpdate();
 
-                                          //console.log("Got Values %d",data.config.id);
+                                          //console.log("Got Values %d",sensor_call_result.config.id);   
 
-                                          //console.log(data);
+                                          //console.log(sensor_call_result);
                                       }
                                 )
                           .catch(error => {

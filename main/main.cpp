@@ -1,14 +1,14 @@
 /*
     --------------------------------------------------------------------------------
 
-    ESPDustLogger       
+    way2.net ESPLogger       
     
-    ESP32 based IoT Device for air quality logging featuring an MQTT client and 
-    REST API acess. Works in conjunction with a VINDRIKTNING air sensor from IKEA.
+    ESP32 based IoT Device for various sensor logging featuring an MQTT client and 
+    REST API access. 
     
     --------------------------------------------------------------------------------
 
-    Copyright (c) 2021 Tim Hagemann / way2.net Services
+    Copyright (c) 2024 Tim Hagemann / way2.net Services
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -52,7 +52,7 @@
 #include "esp_netif.h"
 #include "esp_event.h"
 #include "esp_log.h"
-#include "mdns.h"
+#include "esp_mac.h"
 #include "sdkconfig.h"
 #include "vindriktning.h"
 #include "sensor_manager.h"
@@ -71,24 +71,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-static const char *TAG = "ESPDustLogger";
-
-////////////////////////////////////////////////////////////////////////////////////////
-
-static void initialise_mdns(void)
-{
-    mdns_init();
-    mdns_hostname_set(CONFIG_PRODUCT_NAME);
-    mdns_instance_name_set("instance");
-
-    mdns_txt_item_t serviceTxtData[] = {
-        {"board", "esp32"},
-        {"path", "/"}
-    };
-
-    ESP_ERROR_CHECK(mdns_service_add("ESP32-WebServer", "_http", "_tcp", 80, serviceTxtData,
-                                     sizeof(serviceTxtData) / sizeof(serviceTxtData[0])));
-}
+static const char *TAG = "ESPLogger";
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -160,7 +143,7 @@ void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-// --- not: at least 8 chars!
+// --- note: at least 8 chars!
 
 #define DEFAULT_WIFI_PASS       "let-me-in-1234"
 
@@ -187,6 +170,7 @@ static void start_wifi_client()
         ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
 
         wifi_config_t wifi_config;
+        memset(&wifi_config,0,sizeof(wifi_config_t));
         
         strncpy((char *)wifi_config.ap.ssid,l_macstr,32);
         strncpy((char *)wifi_config.ap.password,DEFAULT_WIFI_PASS,64);
@@ -359,7 +343,7 @@ void app_main()
             g_ConfigManager.SetStringValue(CFMGR_DEVICE_NAME,"IoTDevice");
 
         if (g_ConfigManager.GetStringValue(CFMGR_MQTT_SERVER).length() == 0)
-            g_ConfigManager.SetStringValue(CFMGR_MQTT_SERVER,"mqtt://192.168.1.20");
+            g_ConfigManager.SetStringValue(CFMGR_MQTT_SERVER,"mqtt://192.168.1.60");
         
         if (g_ConfigManager.GetStringValue(CFMGR_MQTT_TOPIC).length() == 0)
             g_ConfigManager.SetStringValue(CFMGR_MQTT_TOPIC,"mytopic/templogger");
@@ -376,28 +360,32 @@ void app_main()
 
     // ---- setup bonjour
 
-    initialise_mdns();
-
+    ESP_LOGI(TAG, "Start WIFI client");
     start_wifi_client();
     
     // ---- setup SPIFFS flashed in rom
 
+    ESP_LOGI(TAG, "Initialize file system");
     ESP_ERROR_CHECK(init_fs());
     
     // ---- initialize all the sensors
 
+    ESP_LOGI(TAG, "Initialize sensor system");
     init_sensors();
 
     // ---- now start the web server
 
+    ESP_LOGI(TAG, "Start REST server");
     start_rest_server(CONFIG_EXAMPLE_WEB_MOUNT_POINT);
 
     // --- start the mqtt manager
 
+    ESP_LOGI(TAG, "Start MQTT manager");
     g_MqttManager.InitManager();
 
 	// ---- main measurement loop
 
+    ESP_LOGI(TAG, "Enter the main program loop");
     while(1) 
     {
         // --- check for the user pressing the bootstrap key

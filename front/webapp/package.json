@@ -1,55 +1,27 @@
 {
-  "name": "ESPDustLogger",
-  "version": "0.1.0",
+  "name": "webapp",
+  "version": "0.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
   },
   "dependencies": {
-    "@mdi/js": "^5.9.55",
-    "axios": "^0.21.1",
-    "core-js": "~3.16.2",
-    "typeface-roboto": "^1.1.13",
-    "vue": "~2.6.14",
-    "vue-router": "~3.5.2",
+    "@mdi/js": "^7.4.47",
+    "axios": "^1.6.3",
+    "mdi": "^2.2.43",
+    "vue": "^3.3.11",
+    "vue-router": "^4.2.5",
     "vue-the-mask": "^0.11.1",
-    "vuetify": "~2.5.8",
-    "vuex": "~3.6.2"
+    "vuetify": "^3.4.9"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "~4.5.13",
-    "@vue/cli-plugin-eslint": "~4.5.13",
-    "@vue/cli-plugin-router": "~4.5.13",
-    "@vue/cli-plugin-vuex": "~4.5.13",
-    "@vue/cli-service": "~4.5.13",
-    "babel-eslint": "~10.1.0",
-    "eslint": "~6.8.0",
-    "eslint-plugin-vue": "~6.2.2",
-    "sass": "~1.32.13",
-    "sass-loader": "~10.2.0",
-    "vue-cli-plugin-vuetify": "~2.4.2",
-    "vue-template-compiler": "~2.6.14",
-    "vuetify-loader": "~1.7.2"
-  },
-  "eslintConfig": {
-    "root": true,
-    "env": {
-      "node": true
-    },
-    "extends": [
-      "plugin:vue/essential",
-      "eslint:recommended"
-    ],
-    "parserOptions": {
-      "parser": "babel-eslint"
-    },
-    "rules": {}
-  },
-  "browserslist": [
-    "> 1%",
-    "last 2 versions",
-    "not dead"
-  ]
+    "@vitejs/plugin-vue": "^4.5.2",
+    "eslint": "^8.49.0",
+    "eslint-plugin-vue": "^9.17.0",
+    "vite": "^5.0.10"
+  }
 }
