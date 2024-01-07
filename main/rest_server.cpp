@@ -148,20 +148,50 @@ inline bool CheckFileExtension(const char *filename, const char *ext)
 
 static esp_err_t set_content_type_from_file(httpd_req_t *req, const char *filepath)
 {
-    const char *type = "text/plain";
-    if (CheckFileExtension(filepath, ".html")) {
+    const char *type        = "text/plain";
+    const char *encoding    = NULL;
+
+    if (CheckFileExtension(filepath, ".html")) 
+    {
         type = "text/html";
-    } else if (CheckFileExtension(filepath, ".js")) {
-        type = "application/javascript";
-    } else if (CheckFileExtension(filepath, ".css")) {
-        type = "text/css";
-    } else if (CheckFileExtension(filepath, ".png")) {
+    } 
+    
+    if (CheckFileExtension(filepath, ".js")) 
+    {
+        type     = "application/javascript";
+        encoding = "gzip";
+    } 
+    
+    if (CheckFileExtension(filepath, ".css")) 
+    {
+        type     = "text/css";
+        encoding = "gzip";
+    }
+    
+    if (CheckFileExtension(filepath, ".png")) {
         type = "image/png";
-    } else if (CheckFileExtension(filepath, ".ico")) {
+    } 
+    
+    if (CheckFileExtension(filepath, ".ico")) {
         type = "image/x-icon";
-    } else if (CheckFileExtension(filepath, ".svg")) {
+    } 
+    
+    if (CheckFileExtension(filepath, ".svg")) 
+    {
+        type = "text/xml";
+    } 
+    
+    if (CheckFileExtension(filepath, ".gz")) {
         type = "text/xml";
     }
+    
+    // --- if an encoding is provide, set the respective header
+
+    if (encoding)
+    {
+        httpd_resp_set_hdr(req,"Content-Encoding",encoding);
+    }
+       
     return httpd_resp_set_type(req, type);
 }
 
@@ -192,6 +222,17 @@ static esp_err_t rest_common_get_handler(httpd_req_t *req)
         strlcat(filepath, req->uri, sizeof(filepath));
     }
 
+    // --- based on the original file name, set content type. Encoding is also set!
+
+    set_content_type_from_file(req, filepath);
+
+    // --- check for css and js files and add ".gz" we are serving those
+
+    if (CheckFileExtension(filepath,".css") || CheckFileExtension(filepath,".js"))
+    {
+        strcat(filepath,".gz");
+    }
+
     // --- now try to open the file
 
     int fd;
@@ -215,9 +256,9 @@ static esp_err_t rest_common_get_handler(httpd_req_t *req)
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to open file - appliance has a severe issue!");
             return ESP_FAIL;
         }
-    }
 
-    set_content_type_from_file(req, filepath);
+        set_content_type_from_file(req, filepath);
+    }
 
     char *chunk = rest_context->scratch;
     ssize_t read_bytes;
