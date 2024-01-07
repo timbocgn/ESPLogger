@@ -6,33 +6,37 @@
 
                 <v-row> 
                 <v-col>
-                <v-card> 
-                  <v-card-title>Sensor {{ index+1 }}</v-card-title>
-                  <v-card-subtitle>{{ item.SensorType }}</v-card-subtitle>
-                  <v-card-text>
-                    <v-table density="compact">
 
-                      <thead><tr>
-                      <th class="text-left" style="width:33%">Item</th>
-                      <th class="text-left" style="width:33%">Value</th> 
-                      <th class="text-left" style="width:33%">Unit</th>
-                      </tr></thead>
+                <template v-if="loaded[index] == true">
+                  <v-card> 
+                    <v-card-title>Sensor {{ index+1 }}</v-card-title>
+                    <v-card-subtitle>{{ item.SensorType }}</v-card-subtitle>
+                    <v-card-text>
+                      <v-table density="compact">
 
-                      <tbody>
-                      <template v-for="(my_val,val_index) in item" :key="val_index">
+                        <thead><tr>
+                        <th class="text-left" style="width:33%">Item</th>
+                        <th class="text-left" style="width:33%">Value</th> 
+                        <th class="text-left" style="width:33%">Unit</th>
+                        </tr></thead>
 
-                      <tr>
-                        <td class="grey--text">{{my_val.text}}</td> 
-                        <td>{{my_val.value}}</td>
-                        <td class="grey--text">{{my_val.unit}}</td>                         
-                      </tr>
-                      
+                        <tbody>
+                        <template v-for="(my_val,val_index) in item" :key="val_index">
 
-                      </template></tbody>
+                        <tr>
+                          <td class="grey--text">{{my_val.text}}</td> 
+                          <td>{{my_val.value}}</td>
+                          <td class="grey--text">{{my_val.unit}}</td>                         
+                        </tr>
+                        
 
-                    </v-table>
-                  </v-card-text>
-                </v-card>
+                        </template></tbody>
+
+                      </v-table>
+                    </v-card-text>
+                  </v-card>
+                </template>
+                
                 </v-col>
                 </v-row>
               </template>

@@ -3,8 +3,17 @@
 import { getCurrentInstance,ref } from "vue"
 import axios from 'axios'
 
+// --- we will use this to get the backend version asynchronously 
+
 var backend_version = ref()
 var backend_version_loaded = ref(false)
+
+
+var app_version = ref()
+app_version = getCurrentInstance().appContext.app.config.globalProperties.appVersion
+
+// --- ask the backend using the version API for the backend version strings
+//     the promise updates the backend_version variable and vue does the rest
 
 axios.get("/api/v1/version").then(ret_value => {
   backend_version.value = ret_value.data
@@ -54,17 +63,20 @@ axios.get("/api/v1/version").then(ret_value => {
               </tr></thead>
 
               <tbody>
+                <template v-if="getCurrentInstance().appContext.app.config.globalProperties.appVersion">
+                    <tr>
+                      <td class="grey--text">web_app_version</td> 
+                      <td>{{ app_version.version }}</td>                 
+                  </tr>
+                  <tr>
+                      <td class="grey--text">vuetify_version</td> 
+                      <td>{{ app_version.dependencies.vuetify.substring(1) }}</td>
+                  </tr>
+                </template>
+                
                 <tr>
-                  <td class="grey--text">Web App Version</td> 
-                  <td>{{ getCurrentInstance().appContext.app.config.globalProperties.appVersion.version }}</td>
-                </tr>
-                <tr>
-                  <td class="grey--text">Web App vue.js Version</td> 
+                  <td class="grey--text">vue_js_version</td> 
                   <td>{{ getCurrentInstance().appContext.app.version }}</td>
-                </tr>
-                <tr>
-                  <td class="grey--text">Web App vuetify Version</td> 
-                  <td>{{ getCurrentInstance().appContext.app.config.globalProperties.appVersion.dependencies.vuetify.substring(1) }}</td>
                 </tr>
                 
                 <template v-if="backend_version_loaded == true">

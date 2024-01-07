@@ -17,13 +17,13 @@ export default defineConfig({
     }
   },
 
-  // --- make package.json accessible in the app using __APP_VERSION__. vite will add this to the global window
-  //     object. See main.js how we use this to stop it in the global config
+  // --- make package.json accessible in the app using __APP_VERSION__. vite will add this to the global properties or 
+  //     replace the string during production build. See main.js how we use this to stop it in the global config
   //     https://stackoverflow.com/questions/67194082/how-can-i-display-the-current-app-version-from-package-json-to-the-user-using-vi
   //     https://github.com/vuejs/vue-next-webpack-preview/issues/15
 
   define:  {
-    '__APP_VERSION__': JSON.stringify(packageJson)
+    __APP_VERSION__: JSON.stringify(packageJson)
   },
 
   // --- this here redirects the api calls of the npm dev server to one running instance 
