@@ -37,7 +37,12 @@
 #include <string>
 
 #include "esp_http_server.h"
+#include "esp_wifi.h"
+#include "esp_mac.h"
 #include "esp_system.h"
+#include "esp_chip_info.h"
+#include "esp_app_desc.h"
+#include "esp_idf_version.h"
 #include "esp_log.h"
 #include "esp_vfs.h"
 #include "cJSON.h"
@@ -445,6 +450,90 @@ static esp_err_t config_get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////
+
+static esp_err_t config_version_handler(httpd_req_t *req)
+{
+    ESP_LOGI(REST_TAG,"config_version_handler %s",req->uri);
+
+    httpd_resp_set_type(req, "application/json");
+
+    // ---- just return the sensor count
+    
+    cJSON *root = cJSON_CreateObject();
+    
+    // ---- get some chip infos
+
+    esp_chip_info_t chip_info;
+    esp_chip_info(&chip_info);
+
+    const esp_app_desc_t *l_appdesc = esp_app_get_description();
+    
+    cJSON_AddStringToObject(root, "idf_version", IDF_VER);
+    cJSON_AddNumberToObject(root, "cpu_cores", chip_info.cores);
+
+    const char *l_model;
+    switch (chip_info.model)
+    {
+        case CHIP_ESP32:        l_model = "ESP32"; break;
+        case CHIP_ESP32S2:      l_model = "ESP32-S2"; break;
+        case CHIP_ESP32S3:      l_model = "ESP32-S3"; break;
+        case CHIP_ESP32C3:      l_model = "ESP32-C3"; break;
+        case CHIP_ESP32C2:      l_model = "ESP32-C2"; break;
+        case CHIP_ESP32C6:      l_model = "ESP32-C6"; break;
+        case CHIP_ESP32H2:      l_model = "ESP32-H2"; break; 
+        case CHIP_POSIX_LINUX:  l_model = "Simulator"; break;
+        default:                l_model = "unknown"; break;
+    };
+
+    cJSON_AddStringToObject(root, "esp_model", l_model);
+    cJSON_AddStringToObject(root, "app_compile_time", l_appdesc->time);
+    cJSON_AddStringToObject(root, "app_compile_date", l_appdesc->date);
+    cJSON_AddStringToObject(root, "app_version", l_appdesc->version);
+
+    uint8_t l_mac[6];
+    ESP_ERROR_CHECK(esp_read_mac(l_mac, ESP_MAC_WIFI_STA));
+
+    char l_macstr[32];
+    snprintf(l_macstr,32,"%02X-%02X-%02X-%02X-%02X-%02X",MAC2STR(l_mac));
+    cJSON_AddStringToObject(root, "mac_address", l_macstr);
+
+    cJSON_AddNumberToObject(root, "free_heap",  esp_get_free_heap_size()/1024);
+    cJSON_AddNumberToObject(root, "min_free_heap",  esp_get_minimum_free_heap_size()/1024);
+
+    // --- now create JSON and send back
+    
+    const char *sys_info = cJSON_Print(root);
+    httpd_resp_sendstr(req, sys_info);
+    
+    free((void *)sys_info);
+    cJSON_Delete(root);
+    
+    return ESP_OK;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+static esp_err_t config_log_handler(httpd_req_t *req)
+{
+    ESP_LOGI(REST_TAG,"config_log_handler %s",req->uri);
+
+    httpd_resp_set_type(req, "application/json");
+
+    // ---- just return the sensor count
+    
+    cJSON *root = cJSON_CreateObject();
+    
+    // --- now create JSON and send back
+    
+    const char *sys_info = cJSON_Print(root);
+    httpd_resp_sendstr(req, sys_info);
+    
+    free((void *)sys_info);
+    cJSON_Delete(root);
+    
+    return ESP_OK;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -607,6 +696,28 @@ esp_err_t start_rest_server(const char *base_path)
     config_apscan_uri.handler  = config_apscan_handler;
     
     httpd_register_uri_handler(server, &config_apscan_uri);
+
+    // ---- URI handler for getting the firmware app version
+
+    httpd_uri_t config_version_uri;
+    
+    config_version_uri.uri      = "/api/v1/version";
+    config_version_uri.user_ctx = rest_context;
+    config_version_uri.method   = HTTP_GET;
+    config_version_uri.handler  = config_version_handler;
+    
+    httpd_register_uri_handler(server, &config_version_uri);
+
+    // ---- URI handler for getting the logfile contents
+
+    httpd_uri_t config_log_uri;
+    
+    config_log_uri.uri      = "/api/v1/log";
+    config_log_uri.user_ctx = rest_context;
+    config_log_uri.method   = HTTP_GET;
+    config_log_uri.handler  = config_log_handler;
+    
+    httpd_register_uri_handler(server, &config_log_uri);
 
     // ---- URI handler for getting the current configuration
 

@@ -1,9 +1,17 @@
 <script setup>
 
-import { getCurrentInstance } from "vue"
+import { getCurrentInstance,ref } from "vue"
+import axios from 'axios'
+
+var backend_version = ref()
+var backend_version_loaded = ref(false)
+
+axios.get("/api/v1/version").then(ret_value => {
+  backend_version.value = ret_value.data
+  backend_version_loaded.value = true
+})
 
 </script>
-
 
 <template>
   <v-container fluid full-height>
@@ -58,6 +66,21 @@ import { getCurrentInstance } from "vue"
                   <td class="grey--text">Web App vuetify Version</td> 
                   <td>{{ getCurrentInstance().appContext.app.config.globalProperties.appVersion.dependencies.vuetify.substring(1) }}</td>
                 </tr>
+                
+                <template v-if="backend_version_loaded == true">
+
+                  <template v-for="(my_val,val_index) in backend_version" :key="val_index">
+
+                    <tr>
+                      <td>{{val_index}}</td>
+                      <td class="grey--text">{{my_val}}</td> 
+                    </tr>
+
+                  </template>
+
+                </template>
+
+                
               </tbody>
 
               </v-table>

@@ -87,7 +87,7 @@ static const char *TAG = "ESPLogger";
 static void on_got_ip(void *arg, esp_event_base_t event_base,
                       int32_t event_id, void *event_data)
 {
-    ESP_LOGI(TAG, "Wi-Fi go ip...");
+    ESP_LOGI(TAG, "Wi-Fi got ip...");
     
     // --- now we are connected
 
@@ -99,7 +99,7 @@ static void on_got_ip(void *arg, esp_event_base_t event_base,
 static void on_got_ipv6(void *arg, esp_event_base_t event_base,
                         int32_t event_id, void *event_data)
 {
-    ESP_LOGI(TAG, "Wi-Fi go ipv6...");
+    ESP_LOGI(TAG, "Wi-Fi got ipv6...");
 
     //ip_event_got_ip6_t *event = (ip_event_got_ip6_t *)event_data;
     //memcpy(&s_ipv6_addr, &event->ip6_info.ip, sizeof(s_ipv6_addr));
