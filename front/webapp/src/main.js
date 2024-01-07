@@ -39,3 +39,8 @@ app.use(router)
 app.use(vuetify)
 app.use(VueTheMask)
 app.mount('#app')
+
+// ---- this copies information from the package.json to the global properties of the app object
+//      sett vite.config.js where these info comes from and About.vue how to access it
+
+app.config.globalProperties.appVersion = window.__APP_VERSION__

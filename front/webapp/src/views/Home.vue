@@ -1,11 +1,11 @@
 <template>
   <v-container fluid full-height>
-    <v-row> 
-      <v-col>
         <template v-if="values.length != 0">
 
               <template v-for="(item,index) in values" :key="index">
 
+                <v-row> 
+                <v-col>
                 <v-card> 
                   <v-card-title>Sensor {{ index+1 }}</v-card-title>
                   <v-card-subtitle>{{ item.SensorType }}</v-card-subtitle>
@@ -33,21 +33,24 @@
                     </v-table>
                   </v-card-text>
                 </v-card>
-
+                </v-col>
+                </v-row>
               </template>
         </template>
 
         <template v-else>
+          <v-row> 
+          <v-col>
 
-              <v-card title="Wait....." loading> 
-                <v-card-text>
-                  <p>Loading sensor data. Please wait.</p>
-                </v-card-text>
-              </v-card>
-
+          <v-card title="Wait....." loading> 
+            <v-card-text>
+              <p>Loading sensor data. Please wait.</p>
+            </v-card-text>
+          </v-card>
+          
+          </v-col>
+          </v-row>
         </template>        
-      </v-col>
-    </v-row>
   </v-container>
 </template>
 
