@@ -605,18 +605,19 @@ static esp_err_t config_log_handler(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "startidx",       g_AppLogger.GetLineId(l_begint));
 
     // --- now add the log lines as an object of (id | text) pairs
-
-    cJSON *l_loglines_obj 	= cJSON_CreateObject();
-
-    char l_buf[20];
+   
+    cJSON *l_loglines_array = cJSON_AddArrayToObject(root,"log_entries");
+   
     for (int l_idx = 0; l_idx < l_cntint; l_idx++)
     {
-        snprintf(l_buf,20,"%lu",g_AppLogger.GetLineId(l_begint + l_idx));
-        cJSON_AddStringToObject(l_loglines_obj, l_buf, g_AppLogger.GetLineText(l_begint + l_idx));
+        cJSON *l_itemObject = cJSON_CreateObject();
+
+        cJSON_AddNumberToObject(l_itemObject, "id",     g_AppLogger.GetLineId(l_begint + l_idx));
+        cJSON_AddStringToObject(l_itemObject, "text",   g_AppLogger.GetLineText(l_begint + l_idx));
+
+        cJSON_AddItemToArray(l_loglines_array,l_itemObject);
     } 
     
-    cJSON_AddItemToObject(root,"log_entries",l_loglines_obj);
-
     // --- now create JSON and send back
     
     const char *sys_info = cJSON_Print(root);

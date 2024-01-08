@@ -517,6 +517,8 @@ bool SHT1x::PerformMeasurement(void)
 		m_temp 	= rand();
 		m_rh 	= rand();
 
+		g_AppLogger.Log("Test of logger %s",GetSensorValueString().c_str());
+
 		return true;
 #else	
 

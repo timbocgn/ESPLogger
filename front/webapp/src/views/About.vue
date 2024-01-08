@@ -3,11 +3,28 @@
 import { getCurrentInstance,ref } from "vue"
 import axios from 'axios'
 
+var items = ref()
+
+// ---- this function is called periodically to get the log file contents
+
+function updateData()
+{
+  axios.get("/api/v1/log/idx-0/cnt-0").then(ret_value => {
+    
+    // --- just copy the array of log items we received via json directly to the items ref instance
+    //     v-table is updated automatically by vue.js
+
+    items.value = ret_value.data.log_entries
+ 
+})
+} 
+
 // --- we will use this to get the backend version asynchronously 
 
 var backend_version = ref()
 var backend_version_loaded = ref(false)
 
+// --- we get the app version from the global properties - see main.js for explanation
 
 var app_version = ref()
 app_version = getCurrentInstance().appContext.app.config.globalProperties.appVersion
@@ -19,6 +36,12 @@ axios.get("/api/v1/version").then(ret_value => {
   backend_version.value = ret_value.data
   backend_version_loaded.value = true
 })
+
+// --- setup a timer for the log file update
+
+var timer
+clearInterval(timer);
+timer = setInterval(updateData , 1000);
 
 </script>
 
@@ -51,6 +74,7 @@ axios.get("/api/v1/version").then(ret_value => {
         </v-card>
       </v-col>
     </v-row>
+
     <v-row> 
       <v-col>
         <v-card title="System Information"> 
@@ -100,6 +124,20 @@ axios.get("/api/v1/version").then(ret_value => {
         </v-card>
       </v-col>
     </v-row>
+
+    <v-row> 
+      <v-col>
+        <v-card title="Logfile"> 
+          <v-card-text>
+            <v-data-table :items="items" density='compact' items-per-page="-1">
+
+            </v-data-table>
+          </v-card-text>
+
+        </v-card>
+      </v-col>
+    </v-row>
+
   </v-container>
 </template>
 

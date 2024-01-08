@@ -37,12 +37,12 @@
 
 // --- debug setting to stub the sensor readings
 
-//#define SENSOR_CONFIG_STUB_SENSORS 
+#define SENSOR_CONFIG_STUB_SENSORS 
 
 // --- these are my device configurations - please change accordingly
 
-//#define DEVICE_ESP_TEMPLOGGER  
-#define DEVICE_ESP_DUSTLOGGER  
+#define DEVICE_ESP_TEMPLOGGER  
+//#define DEVICE_ESP_DUSTLOGGER  
 //#define DEVICE_ESP_TEMPLOGGERV2
 
 // --- how many sensors do we have?
