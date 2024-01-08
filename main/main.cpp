@@ -60,6 +60,7 @@
 #include "infomanager.h"
 #include "config_manager_defines.h"
 #include "mqtt_manager.h"
+#include "applogger.h"
 
 #define CONFIG_EXAMPLE_WEB_MOUNT_POINT "/www"
 
@@ -71,7 +72,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-static const char *TAG = "ESPLogger";
+static const char *TAG = "ESPLoggerMain";
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -309,6 +310,38 @@ void app_main()
 
     ESP_ERROR_CHECK(nvs_flash_init());
 
+    // ---- setup SPIFFS  (as early as possible for the app logger)
+
+    ESP_LOGI(TAG, "Initialize file system");
+    ESP_ERROR_CHECK(init_fs());
+
+    // ---- init app logger (which needs the SPIFFS)
+
+    ESP_ERROR_CHECK(g_AppLogger.InitAppLogger());    
+
+
+    for (int i = 0; i < 10;++i)
+    {   
+        g_AppLogger.Log("Log Line %d",i);
+/*
+        ESP_LOGI(TAG, "----------------------------------------------");
+        for (int qq = 0; qq < 10;++qq)
+        {   
+            const char *l_s = g_AppLogger.GetLine(qq);
+            if (l_s)
+            {
+                ESP_LOGI(TAG, "LINE %02d -> %s",qq,l_s);
+
+            }
+            else
+            {
+                ESP_LOGI(TAG, "LINE %02d -> NULL",qq);
+            }
+        }
+        ESP_LOGI(TAG, "----------------------------------------------");*/
+    }
+
+
     // --- start the info manager
 
     g_InfoManager.InitManager();
@@ -358,16 +391,11 @@ void app_main()
         ESP_LOGI(TAG, "Device configuration found. Let's rock it.");
     }
 
-    // ---- setup bonjour
+    // ---- setup wifi client or hotspot
 
     ESP_LOGI(TAG, "Start WIFI client");
     start_wifi_client();
-    
-    // ---- setup SPIFFS flashed in rom
-
-    ESP_LOGI(TAG, "Initialize file system");
-    ESP_ERROR_CHECK(init_fs());
-    
+  
     // ---- initialize all the sensors
 
     ESP_LOGI(TAG, "Initialize sensor system");

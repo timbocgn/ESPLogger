@@ -1,4 +1,4 @@
-idf_component_register(SRCS "ESP32_SHT1x.cpp" "vindriktning.cpp" "main.cpp" "rest_server.cpp" "sensor_manager.cpp" "config_manager.cpp" "infomanager.cpp" "mqtt_manager.cpp"
+idf_component_register(SRCS "ESP32_SHT1x.cpp" "vindriktning.cpp" "main.cpp" "rest_server.cpp" "sensor_manager.cpp" "config_manager.cpp" "infomanager.cpp" "mqtt_manager.cpp" "applogger.cpp"
                     INCLUDE_DIRS ".")
 
 

@@ -57,6 +57,7 @@
 #include "config_manager.h"
 #include "config_manager_defines.h"
 #include "mqtt_manager.h"
+#include "applogger.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -287,28 +288,6 @@ static esp_err_t rest_common_get_handler(httpd_req_t *req)
     httpd_resp_send_chunk(req, NULL, 0);
     return ESP_OK;
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-
-#ifdef NOTUSED
-
-/* Simple handler for getting system handler */
-static esp_err_t system_info_get_handler(httpd_req_t *req)
-{
-    httpd_resp_set_type(req, "application/json");
-    cJSON *root = cJSON_CreateObject();
-    esp_chip_info_t chip_info;
-    esp_chip_info(&chip_info);
-    cJSON_AddStringToObject(root, "version", IDF_VER);
-    cJSON_AddNumberToObject(root, "cores", chip_info.cores);
-    const char *sys_info = cJSON_Print(root);
-    httpd_resp_sendstr(req, sys_info);
-    free((void *)sys_info);
-    cJSON_Delete(root);
-    return ESP_OK;
-}
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -561,10 +540,97 @@ static esp_err_t config_log_handler(httpd_req_t *req)
 
     httpd_resp_set_type(req, "application/json");
 
-    // ---- just return the sensor count
+    // ---- find end value 
+
+    char *l_cntint_str = strstr(req->uri,"/cnt-");
+    if (!l_cntint_str)
+    {
+        ESP_LOGE(REST_TAG, "config_log_handler: Illegal URI");
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Illegal URI: cnt missing");
+        return ESP_FAIL;
+    }
+
+    char *l_idxint_str = strstr(req->uri,"/idx-");
+    if (!l_idxint_str)
+    {
+        ESP_LOGE(REST_TAG, "config_log_handler: Illegal URI");
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Illegal URI: start index missing");
+        return ESP_FAIL;
+    }
+
+    // ---- convert to int
+
+    int l_cntint = atoi(l_cntint_str+5);
+    int l_idxint = atoi(l_idxint_str+5);
+
+    // ---- calculate the begin line in the AppLogger
+
+    int l_begint;
+    if (l_idxint == 0)
+    {
+        // --- special case: idx 0 means get the first line in the buffer
+
+        l_begint = 0;
+    }
+    else
+    {
+        // --- usual case: id specified
+
+        l_begint  = g_AppLogger.FindLineNumber(l_idxint);
+
+        if (l_begint < 0)
+        {
+            ESP_LOGE(REST_TAG, "config_log_handler: Illegal URI");
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Illegal URI: illegal log id specified");
+            return ESP_FAIL;
+        }
+    }
+
+    // --- handle special case for count: 0 means get all lines
+
+    if (l_cntint == 0)
+    {
+        l_cntint = g_AppLogger.GetLineCount();
+    }
+
+    if (l_begint + l_cntint > g_AppLogger.GetLineCount())
+    {
+        l_cntint = g_AppLogger.GetLineCount()-l_begint;
+    }
+   
+    // ---- some sanity checks
+
+    if (l_cntint > g_AppLogger.GetLineCount())
+    {
+        ESP_LOGE(REST_TAG, "config_log_handler: Illegal URI");
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Illegal URI: cnt exceeds log entries");
+        return ESP_FAIL;
+    }
+
+    // ---- create the JSON response object
     
     cJSON *root = cJSON_CreateObject();
+
+    // --- add number some interesting numeric values back to the JSON
+
+    cJSON_AddNumberToObject(root, "log_count",      g_AppLogger.GetLineCount());
+    cJSON_AddNumberToObject(root, "log_max_count",  APPLOGGER_MAX_NUMLINES);
+    cJSON_AddNumberToObject(root, "count",          l_cntint);
+    cJSON_AddNumberToObject(root, "startidx",       g_AppLogger.GetLineId(l_begint));
+
+    // --- now add the log lines as an object of (id | text) pairs
+
+    cJSON *l_loglines_obj 	= cJSON_CreateObject();
+
+    char l_buf[20];
+    for (int l_idx = 0; l_idx < l_cntint; l_idx++)
+    {
+        snprintf(l_buf,20,"%lu",g_AppLogger.GetLineId(l_begint + l_idx));
+        cJSON_AddStringToObject(l_loglines_obj, l_buf, g_AppLogger.GetLineText(l_begint + l_idx));
+    } 
     
+    cJSON_AddItemToObject(root,"log_entries",l_loglines_obj);
+
     // --- now create JSON and send back
     
     const char *sys_info = cJSON_Print(root);
@@ -753,7 +819,7 @@ esp_err_t start_rest_server(const char *base_path)
 
     httpd_uri_t config_log_uri;
     
-    config_log_uri.uri      = "/api/v1/log";
+    config_log_uri.uri      = "/api/v1/log/*";
     config_log_uri.user_ctx = rest_context;
     config_log_uri.method   = HTTP_GET;
     config_log_uri.handler  = config_log_handler;
