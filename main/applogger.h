@@ -100,7 +100,6 @@ private:
     
     // --- simple helper function
 
-    std::string CurrentDateTime(void);   
     void SetLine(int f_line,uint32_t f_idx, const char *f_s);
     void AddLine(const char *f_s); 
     void RawAddLine(const char *f_s); 

@@ -118,6 +118,7 @@ public:
 	// ---- CSensor interface
 
 	virtual std::string GetSensorValueString(void);
+	virtual std::string GetSensorDescriptionString(void);
  	virtual bool PerformMeasurement(void);
  	virtual bool SetupSensor(gpio_num_t *f_pins,int *f_data);
     virtual void AddValuesToJSON_MQTT(cJSON *f_root);

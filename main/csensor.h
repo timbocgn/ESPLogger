@@ -50,10 +50,14 @@ class CSensor
 {
 public:
     virtual std::string GetSensorValueString(void) = 0;
+    virtual std::string GetSensorDescriptionString(void) = 0;
+
  	virtual bool PerformMeasurement(void) = 0;
  	virtual bool SetupSensor(gpio_num_t *f_pins,int *f_data) = 0;
     virtual void AddValuesToJSON_MQTT(cJSON *f_root) = 0;
     virtual void AddValuesToJSON_API(cJSON *f_root) = 0;
+
+
 };
 
 #endif

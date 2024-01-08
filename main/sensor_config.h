@@ -37,22 +37,60 @@
 
 // --- debug setting to stub the sensor readings
 
-#define SENSOR_CONFIG_STUB_SENSORS 1
+//#define SENSOR_CONFIG_STUB_SENSORS 
+
+// --- these are my device configurations - please change accordingly
+
+//#define DEVICE_ESP_TEMPLOGGER  
+#define DEVICE_ESP_DUSTLOGGER  
+//#define DEVICE_ESP_TEMPLOGGERV2
 
 // --- how many sensors do we have?
 
-#define SENSOR_CONFIG_SENSOR_CNT    2
+#ifdef DEVICE_ESP_TEMPLOGGER
 
-// --- for each sensor, specify the class, the pin params and the data params. Meaning of these parameter
-//     is defined in the sensor class implementation
+    #define SENSOR_CONFIG_SENSOR_CNT    2
 
-#define SENSOR_CONFIG_SENSOR1_CLASS CVindriktning
-#define SENSOR_CONFIG_SENSOR1_PINS  {GPIO_NUM_0,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC}
-#define SENSOR_CONFIG_SENSOR1_DATA  {0,1,2,3,4,5}
+    // --- for each sensor, specify the class, the pin params and the data params. Meaning of these parameter
+    //     is defined in the sensor class implementation
 
-#define SENSOR_CONFIG_SENSOR2_CLASS SHT1x
-#define SENSOR_CONFIG_SENSOR2_PINS  {GPIO_NUM_26,GPIO_NUM_25,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC}
-#define SENSOR_CONFIG_SENSOR2_DATA  {0,0,0,0,0,0}
+    #define SENSOR_CONFIG_SENSOR1_CLASS SHT1x
+    #define SENSOR_CONFIG_SENSOR1_PINS  {GPIO_NUM_26,GPIO_NUM_25,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC}
+    #define SENSOR_CONFIG_SENSOR1_DATA  {0,0,0,0,0,0}
+
+    #define SENSOR_CONFIG_SENSOR2_CLASS SHT1x
+    #define SENSOR_CONFIG_SENSOR2_PINS  {GPIO_NUM_17,GPIO_NUM_16,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC}
+    #define SENSOR_CONFIG_SENSOR2_DATA  {0,0,0,0,0,0}
+
+#endif
+
+#ifdef DEVICE_ESP_DUSTLOGGER
+
+    #define SENSOR_CONFIG_SENSOR_CNT    1
+
+    // --- for each sensor, specify the class, the pin params and the data params. Meaning of these parameter
+    //     is defined in the sensor class implementation
+
+    #define SENSOR_CONFIG_SENSOR1_CLASS CVindriktning
+    #define SENSOR_CONFIG_SENSOR1_PINS  {GPIO_NUM_25,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC}
+    #define SENSOR_CONFIG_SENSOR1_DATA  {1,0,0,0,0,0}
+
+#endif
+
+#ifdef DEVICE_ESP_TEMPLOGGERV2
+
+    #error DRAFT
+
+    #define SENSOR_CONFIG_SENSOR_CNT    2
+
+    // --- for each sensor, specify the class, the pin params and the data params. Meaning of these parameter
+    //     is defined in the sensor class implementation
+
+    #define SENSOR_CONFIG_SENSOR1_CLASS CVindriktning
+    #define SENSOR_CONFIG_SENSOR1_PINS  {GPIO_NUM_0,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC}
+    #define SENSOR_CONFIG_SENSOR1_DATA  {0,1,2,3,4,5}
+
+#endif
 
 // --- as of now up to 4 sensors are possible, just add some #if statements in the sensor manager if you need more
 

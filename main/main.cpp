@@ -322,8 +322,8 @@ void app_main()
 
     for (int i = 0; i < 10;++i)
     {   
-        g_AppLogger.Log("Log Line %d",i);
-/*
+/*        g_AppLogger.Log("Log Line %d",i);
+
         ESP_LOGI(TAG, "----------------------------------------------");
         for (int qq = 0; qq < 10;++qq)
         {   
@@ -366,7 +366,7 @@ void app_main()
 
     if (g_ConfigManager.GetIntValue(CFMGR_BOOTSTRAP_DONE) == 0)
     {
-        ESP_LOGI(TAG, "Device not bootstrapped - enter bootstrap mode");
+        g_AppLogger.Log("Device not bootstrapped - enter bootstrap mode");
 
         g_InfoManager.SetMode(InfoMode_Bootstrap);
 
@@ -387,28 +387,27 @@ void app_main()
     else
     {
         g_InfoManager.SetMode(InfoMode_WaitToConnect);
-
-        ESP_LOGI(TAG, "Device configuration found. Let's rock it.");
+        g_AppLogger.Log("Device configuration found. Let's rock it.");
     }
 
     // ---- setup wifi client or hotspot
 
-    ESP_LOGI(TAG, "Start WIFI client");
+    g_AppLogger.Log("Start WIFI client");
     start_wifi_client();
   
     // ---- initialize all the sensors
 
-    ESP_LOGI(TAG, "Initialize sensor system");
+    g_AppLogger.Log("Initialize sensor system");
     init_sensors();
 
     // ---- now start the web server
 
-    ESP_LOGI(TAG, "Start REST server");
+    g_AppLogger.Log("Start REST server");
     start_rest_server(CONFIG_EXAMPLE_WEB_MOUNT_POINT);
 
     // --- start the mqtt manager
 
-    ESP_LOGI(TAG, "Start MQTT manager");
+    g_AppLogger.Log("Start MQTT manager");
     g_MqttManager.InitManager();
 
 	// ---- main measurement loop
@@ -420,15 +419,15 @@ void app_main()
 
         if (g_InfoManager.IsBootstrapActivated())  
         {
-            ESP_LOGI(TAG, "Bootstrap activated by user. Reset bootstrap flag and reboot!");
+            g_AppLogger.Log("Bootstrap activated by user. Reset bootstrap flag and reboot!");
 
             if (g_ConfigManager.GetIntValue(CFMGR_BOOTSTRAP_DONE) == 0)
             {
-                ESP_LOGI(TAG, "Device not bootstrapped - ignore!");
+                g_AppLogger.Log("Device not bootstrapped - ignore!");
             }
             else
             {
-                ESP_LOGI(TAG, "Reset bootstrap flag and reboot!");
+                g_AppLogger.Log("Reset bootstrap flag and reboot!");
 
                 // --- set the flash flag to "not configured"
 

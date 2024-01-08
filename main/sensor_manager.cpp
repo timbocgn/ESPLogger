@@ -44,6 +44,7 @@
 #include "ESP32_SHT1x.h"
 
 #include "sensor_manager.h"
+#include "applogger.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -63,7 +64,9 @@ void SensorManager::ProcessMeasurements(void)
     {
         if (!m_Sensors[i]->PerformMeasurement())
         {
-            ESP_LOGE(TAG, "Failed to perform a measurement on sensor %d", i);
+             g_AppLogger.Log("Failed to perform a measurement on sensor %d", i);
+             g_AppLogger.Log("Sensor Identification: %s", m_Sensors[i]->GetSensorDescriptionString().c_str());
+
         }
         else
         {

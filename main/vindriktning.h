@@ -86,6 +86,7 @@ public:
 	}
 
 	virtual std::string GetSensorValueString(void);
+    virtual std::string GetSensorDescriptionString(void);
  	virtual bool PerformMeasurement(void);
     virtual void AddValuesToJSON_MQTT(cJSON *f_root);
     virtual void AddValuesToJSON_API(cJSON *f_root);

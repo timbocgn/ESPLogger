@@ -56,12 +56,16 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
+#include <ctime>
 #include "freertos/FreeRTOS.h"
 #include "rom/ets_sys.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
 
 #include "ESP32_SHT1x.h"
+#include "applogger.h"
+
+#include "sensor_config.h"
 
 /* Definitions of all known SHT1x commands */
 
@@ -338,7 +342,7 @@ bool SHT1x::SHT1x_Get_Measure_Value(unsigned short int * value )
 		delay_count--;
 		if (delay_count == 0)
 		{
-			ESP_LOGE(TAG, "Timeout in SHT1x_Get_Measure_Value for Sensor with SCLK %d and DATA %d", (int)m_SHT1x_pin_sck,(int)m_SHT1x_pin_data);
+			//g_AppLogger.Log("Timeout in SHT1x_Get_Measure_Value for Sensor with SCLK %d and DATA %d", (int)m_SHT1x_pin_sck,(int)m_SHT1x_pin_data);
 			return false;
 		}
 			
@@ -357,7 +361,7 @@ bool SHT1x::SHT1x_Get_Measure_Value(unsigned short int * value )
 	}
 	else
 	{
-		ESP_LOGE(TAG, "CRC error in SHT1x_Get_Measure_Value for Sensor with SCLK %d and DATA %d", (int)m_SHT1x_pin_sck,(int)m_SHT1x_pin_data);
+		//g_AppLogger.Log("CRC error in SHT1x_Get_Measure_Value for Sensor with SCLK %d and DATA %d", (int)m_SHT1x_pin_sck,(int)m_SHT1x_pin_data);
 		return false;
 	}
 }
@@ -477,24 +481,45 @@ float SHT1x::SHT1x_CalcAbsHumidity(float r ,float T)
 
 bool SHT1x::SetupSensor(gpio_num_t f_sck,gpio_num_t f_data)
 {
+#ifdef SENSOR_CONFIG_STUB_SENSORS
+	
+	srand((unsigned)time(0)); 	
+	return true;
+
+#else
 	m_SHT1x_pin_sck		= f_sck;
 	m_SHT1x_pin_data	= f_data;
 
 	// --- set hardware pins
 
-	SHT1x_InitPins();
+	if (!SHT1x_InitPins())
+	{
+		g_AppLogger.Log("Error initializing SHT1x");
+	}
 	
 	// --- Reset the SHT1x
 
 	SHT1x_Reset();
 
 	return true;
+
+#endif	
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
 bool SHT1x::PerformMeasurement(void)
 {
+#ifdef SENSOR_CONFIG_STUB_SENSORS
+	
+		// ---- do some random magic to generate some values
+
+		m_temp 	= rand();
+		m_rh 	= rand();
+
+		return true;
+#else	
+
 	bool 				l_success;
 	unsigned short int 	l_rawTemp,l_rawRH;
 	
@@ -523,6 +548,7 @@ bool SHT1x::PerformMeasurement(void)
 	SHT1x_Calc(l_rawRH, l_rawTemp);
 
 	return true;
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -531,6 +557,16 @@ std::string SHT1x::GetSensorValueString(void)
 {	
 	char l_buf[80];
 	snprintf(l_buf,80,"SHT1x Sensor: temp %f C / rH %f %% / dp %f C",GetTemp(),GetRH(),GetDP());
+
+	return std::string(l_buf);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+std::string SHT1x::GetSensorDescriptionString(void)
+{
+	char l_buf[200];
+	snprintf(l_buf,200,"SHT1x sensor / serial data pin %d clock pin %d",(int)m_SHT1x_pin_sck,(int)m_SHT1x_pin_data);
 
 	return std::string(l_buf);
 }

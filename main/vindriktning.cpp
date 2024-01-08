@@ -332,6 +332,16 @@ std::string CVindriktning::GetSensorValueString(void)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
+std::string CVindriktning::GetSensorDescriptionString(void)
+{
+	char l_buf[200];
+	snprintf(l_buf,200,"Vindriktning Dust Sensor / serial pin %d uart number %d",(int)m_pin_data,(int)m_uart);
+
+	return std::string(l_buf);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+
 void CVindriktning::AddValuesToJSON_MQTT(cJSON *f_root)
 {
 	cJSON_AddNumberToObject(f_root, "pm1", GetPM1());

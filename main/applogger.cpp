@@ -84,7 +84,7 @@ void CAppLogger::SetLine(int f_line,uint32_t f_idx, const char *f_s)
     m_IdLogBuffer[f_line].m_LogIndex = f_idx;
     if  (m_IdLogBuffer[f_line].m_Text) delete [] m_IdLogBuffer[f_line].m_Text;
 
-    m_IdLogBuffer[f_line].m_Text = new char [strlen(f_s)];
+    m_IdLogBuffer[f_line].m_Text = new char [strlen(f_s)+1];
     if (!m_IdLogBuffer[f_line].m_Text)
     {
         ESP_LOGE(TAG, "Failed to allocate log line buffer!");
@@ -107,9 +107,7 @@ int CAppLogger::GetLineCount(void)
 
 void CAppLogger::AddLine(const char *f_s)
 {
-    //char l_buf[APPLOGGER_MAX_LINE_LEN];
-    //snprintf(l_buf,APPLOGGER_MAX_LINE_LEN,"%s:%s",CurrentDateTime().c_str(),f_s);
-
+    ESP_LOGI(TAG, "%s",f_s);
     RawAddLine(f_s);
 }
 

@@ -202,8 +202,6 @@ static esp_err_t set_content_type_from_file(httpd_req_t *req, const char *filepa
 
 static esp_err_t rest_common_get_handler(httpd_req_t *req)
 {
-    ESP_LOGI(REST_TAG,"rest_common_get_handler %s",req->uri);
-
     char filepath[FILE_PATH_MAX];
 
     // --- get the base file path (aka "/www" from the user context to our buffer to be the base of the file path
@@ -293,8 +291,6 @@ static esp_err_t rest_common_get_handler(httpd_req_t *req)
 
 static esp_err_t dust_data_get_handler(httpd_req_t *req)
 {
-    ESP_LOGI(REST_TAG,"dust_data_get_handler %s",req->uri);
-
     httpd_resp_set_type(req, "application/json");
 
     // ---- find trailing backslash
@@ -340,8 +336,6 @@ static esp_err_t dust_data_get_handler(httpd_req_t *req)
 
 static esp_err_t dust_cnt_get_handler(httpd_req_t *req)
 {
-    ESP_LOGI(REST_TAG,"dust_cnt_get_handler %s",req->uri);
-
     httpd_resp_set_type(req, "application/json");
 
     // ---- just return the sensor count
@@ -362,9 +356,7 @@ static esp_err_t dust_cnt_get_handler(httpd_req_t *req)
 ////////////////////////////////////////////////////////////////////////////////////////
 
 static esp_err_t config_apscan_handler(httpd_req_t *req)
-{
-    ESP_LOGI(REST_TAG,"config_apscan_handler %s",req->uri);
-    
+{    
     httpd_resp_set_type(req, "application/json");
 
     // ---- just return the sensor count
@@ -441,8 +433,6 @@ static esp_err_t config_apscan_handler(httpd_req_t *req)
 
 static esp_err_t config_get_handler(httpd_req_t *req)
 {
-    ESP_LOGI(REST_TAG,"config_get_handler %s",req->uri);
-
     httpd_resp_set_type(req, "application/json");
 
     // ---- just return the sensor count
@@ -474,8 +464,6 @@ static esp_err_t config_get_handler(httpd_req_t *req)
 
 static esp_err_t config_version_handler(httpd_req_t *req)
 {
-    ESP_LOGI(REST_TAG,"config_version_handler %s",req->uri);
-
     httpd_resp_set_type(req, "application/json");
 
     // ---- just return the sensor count
@@ -515,7 +503,7 @@ static esp_err_t config_version_handler(httpd_req_t *req)
     ESP_ERROR_CHECK(esp_read_mac(l_mac, ESP_MAC_WIFI_STA));
 
     char l_macstr[32];
-    snprintf(l_macstr,32,"%02X-%02X-%02X-%02X-%02X-%02X",MAC2STR(l_mac));
+    snprintf(l_macstr,32,"%02X:%02X:%02X:%02X:%02X:%02X",MAC2STR(l_mac));
     cJSON_AddStringToObject(root, "mac_address", l_macstr);
 
     cJSON_AddNumberToObject(root, "free_heap",  esp_get_free_heap_size()/1024);
@@ -536,8 +524,6 @@ static esp_err_t config_version_handler(httpd_req_t *req)
 
 static esp_err_t config_log_handler(httpd_req_t *req)
 {
-    ESP_LOGI(REST_TAG,"config_log_handler %s",req->uri);
-
     httpd_resp_set_type(req, "application/json");
 
     // ---- find end value 
@@ -702,8 +688,6 @@ esp_err_t ProcessJsonInt(cJSON *f_root,const char *f_name)
 
 static esp_err_t config_post_handler(httpd_req_t *req)
 {
-    ESP_LOGI(REST_TAG,"config_post_handler %s",req->uri);
-
     // --- check if we have enough space to process full post request
 
     int total_len = req->content_len;
