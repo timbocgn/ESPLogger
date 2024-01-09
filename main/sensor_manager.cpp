@@ -42,6 +42,7 @@
 
 #include "vindriktning.h"
 #include "ESP32_SHT1x.h"
+#include "cbme280_sensor.h"
 
 #include "sensor_manager.h"
 #include "applogger.h"
@@ -83,7 +84,11 @@ void SensorManager::ProcessMeasurements(void)
                             m_Sensors[num-1] = new SENSOR_CONFIG_SENSOR ## num ## _CLASS;\
                             assert(m_Sensors[num-1] != NULL);\
                             ESP_LOGI(TAG, "Sensor pointer %p. Initialize...",m_Sensors[num-1]);\
-                            assert(m_Sensors[num-1]->SetupSensor(l_pins,l_data));\
+                            if (!m_Sensors[num-1]->SetupSensor(l_pins,l_data))\
+                            {\
+                                ESP_LOGE(TAG, "...returned an error!");\
+                                g_AppLogger.Log("Error initializing sensor %d (%s)",num,m_Sensors[num-1]->GetSensorDescriptionString().c_str());\
+                            }\
                             ESP_LOGI(TAG, "Sensor pointer %p. ...finished.",m_Sensors[num-1]);\
                         }
 

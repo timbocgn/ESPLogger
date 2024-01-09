@@ -32,58 +32,59 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef ESP32_vindriktning_H_
-#define	ESP32_vindriktning_H_
+#ifndef ESP32_cbme280_sensor_H_
+#define	ESP32_cbme280_sensor_H_
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <unistd.h>
 #include <stdio.h>
+
+#include "driver/i2c_master.h"
+
 #include "csensor.h"
+
+#include "bme280.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-class CVindriktning : public CSensor
+class CBme280Sensor : public CSensor
 {
 
 public:
 
 	// --- construct 
 
-	CVindriktning(void);
+	CBme280Sensor(void);
 
 	// --- actions
 
-	bool SetupSensor(gpio_num_t f_data, uart_port_t f_uart);
+	bool SetupSensor(gpio_num_t f_sda,gpio_num_t f_scl,i2c_port_num_t f_i2c_port);
 
 	// --- getter
 
-	float GetPM2(void) const
+	float GetTemp(void) const
 	{
-		return m_pm2;
+		return m_temp;
 	}
 
-	float GetPM1(void) const
+	float GetRH(void) const
 	{
-		return m_pm1;
+		return m_rh;
 	}
 
-	float GetPM10(void) const
+	float GetPressure(void) const
 	{
-		return m_pm10;
+		return m_pressure;
 	}
 
 	// --- internal functions do not use
 
+/*
 	gpio_num_t GetDataPin(void) { return m_pin_data; }
 	uart_port_t GetUart(void) { return m_uart; }
 
-	void SetValues(const uint16_t f_pm2,const uint16_t f_pm1,const uint16_t f_pm10)
-	{
-		m_pm2 	= f_pm2;
-		m_pm10 	= f_pm10;
-		m_pm1 	= f_pm1;
-	}
+*/
 
 	virtual std::string GetSensorValueString(void);
     virtual std::string GetSensorDescriptionString(void);
@@ -94,12 +95,22 @@ public:
 
 private:
 
-	float m_pm2;
-	float m_pm10;
-	float m_pm1;
+	static BME280_INTF_RET_TYPE bme280_i2c_read(uint8_t reg_addr, uint8_t *reg_data, uint32_t length, void *intf_ptr);
+	static BME280_INTF_RET_TYPE bme280_i2c_write(uint8_t reg_addr, const uint8_t *reg_data, uint32_t length, void *intf_ptr);
+	static void bme280_delay_us(uint32_t period_us, void *intf_ptr);
+
+
+	float m_temp;
+	float m_rh;
+	float m_pressure;
+
 	
-	gpio_num_t m_pin_data;
-	uart_port_t m_uart;
+	gpio_num_t 		m_pin_sda;
+	gpio_num_t 		m_pin_scl;
+	i2c_port_num_t 	m_i2c_port;
+	int				m_bme280_i2c_adr;
+
+	struct bme280_dev m_bme280_dev;
 	
 	bool m_Initialized;
 };

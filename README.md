@@ -1,6 +1,14 @@
-# ESPDustLogger
+# ESPLogger
 
-ESP32 based IoT Device for air quality logging featuring an MQTT client and REST API acess. Works in conjunction with a [VINDRIKTNING](https://www.ikea.com/de/de/p/vindriktning-luftqualitaetssensor-70498242/) air sensor from IKEA.
+ESP32 based IoT Device for air quality logging featuring an MQTT client and REST API access. 
+
+It works in conjunction with the VINDRIKTNING air sensor from IKEA which can be hacked to become an 
+IoT by this or by an SHT1x sensor which reports temperature and humidity.
+
+It features a bootstrapping mechanism opening a local wireless hotspot for connecting it to your
+favorite wireless lan and has also an MQTT provider build in, which you can use to log the data.
+
+You also can leverage the API calls to configure the device and get the sensor data to your favorite application.
     
 ## Getting Started
 
@@ -27,7 +35,7 @@ source $IDF_PATH/export.sh
 Download or clone the repository to your system
 
 ```
-https://github.com/timbocgn/way2dustlogger.git
+https://github.com/timbocgn/esplogger
 ```
 
 Firstly you should install all the dependencies for the vue based web application
@@ -90,72 +98,74 @@ idf.py -p /dev/tty.usbserial-00E3A8A2 monitor
 * When the LED blinks in a 100ms on - 100ms off - 100ms on - 2700ms off fashion, the system is connecting to your AP
 * When the LED blinks in a 100ms on - 2900ms off fashion, the system is connected to your AP
 
+You can configure the GPIO on which the switch is expected in the IDF menuconfig parameters
+
 ### Access the web interface
 
 Please take a look at your router, DHCP server or the monitor output to get the IP address of the ESP32. Point your browser to the IP address to check if the sensors are working. 
 
-It might take a while until the Vindriktning sensor reveives its first measurement.
-
-### Access the sensor data 
-
-The sensor provides a REST-API for the device. See the postman examples in `Dust Logger.postman_collection.json`.
-
-* `pm1` is the number of 1um particles per m^3
-* `pm2` is the number of 2.5um particles per m^3
-* `pm10` is the number of 10um particles per m^3
+It might take a while until the Vindriktning sensor receives its first measurement.
 
 ### Push the sensor data to MQTT
 
-Just provide the necessary data in the MQTT section and enable the MQTT client. The sensor will provide the data as JSON struct:
-
-```
-{
-  "pm1" : 24,
-  "pm2" : 55,
-  "pm10" : 14
-}
-```
+Just provide the necessary data in the MQTT section and enable the MQTT client. The sensors will provide the data as JSON struct.
 
 ## Development
 
 ### Changing the UI
 
-To change the UI it is very handy to you the build in web server of webpack:
+To change the UI it is very handy to you the build in web server of vite:
 
 ```
-npm run serve
+npm run dev
 ```
 
-It will start a local web server on your machine which forwards the API calls to your device. Please check the `vue.config.js` file in `front/webapp` and enter the IP adress the requests should be forwarded to (to the address of your ESP).
+It will start a local web server on your machine which forwards the API calls to your device. Please check the `vite.config.js` file in `front/webapp` and enter the IP address the requests should be forwarded to (to the address of your ESP).
 
 Please follow the vue.js guides and how to's on how to change the front end code.
 
-## Wiring
+## Adding more sensors
 
-I used a ESP32 MINI board, sometimes called WEMOS ESP32 mini board although it is not a WEMOS board. I bought mine here: https://www.komputer.de/zen/index.php?main_page=product_info&products_id=530 . They are wideley available, just google for it. GPIO2 is directly connected to a SMD led on this board, so this connection has already been been made.
+The sensors are added to the code using a macro based factory. Take a look at sensor_config.h to see the three devices I build with this framework.
 
-The default configuration is:
+You can specify parameters such as GPIO or UART id by adding config variables.
 
-```
-SENSOR1_UART_PORT_NUM   = 1 
-SENSOR1_DATA_GPIO       = 25
-BOOTSTRAP_GPIO          = 35
-INFOLED_GPIO            = 2
-```
+## Adding new sensors
 
-The wiring is quite simple as you can see in the `hardware/EspDustLogger_schem.pdf` file in the repository.
+All sensor drivers are a derived class if the CSensor abstract base class, which provides a common interface for all sensor types.
 
-The part with the transistors converts the 5V signal of the sensor to the 3.3V level of the ESP32. There are many articles in the web that it will work without, but this is dangerous as the ESP is not 5V-save.
+Once you have implemented this class, you can use the factory in sensor_config.h to install your sensor object to the code.
 
-The button is pulled up to 3.3V and gets pulled down to GND when you press the button. The device will then enter bootstrap mode and open the own wifi ap.
+Everything else is created dynamically: UI of the homepage, MQTT push formats, etc.
+
+The system is not limited to any specific type of sensor.
+
+## Easier Development
+
+If your are using VS.Code I recommend to install a couple of plugins:
+
+- Espressif IDF for building esp idf projects
+- Volar for vue.js language features
 
 ## Built With
 
-* [ESP IDF](https://www.espressif.com/en/products/software/esp-sdk/overview) - The SDK used for developent
+* [ESP IDF](https://www.espressif.com/en/products/software/esp-sdk/overview) - The SDK used for development
 * [vue.js](https://vuejs.org) - Javascript frontend framework used for the SPA
+* [vuetify.js](https://vuetifyjs.com/) - Javascript component framework based on vue.js
+
+* [vue-the-mask](https://github.com/vuejs-tips/vue-the-mask) - A vue.js component for more fancy input masking 
+
+* [Material Design Icons](https://pictogrammers.com/library/mdi/) - An extensive library of SVG based icons for the web app
+
+* [vite plugin compression](https://github.com/vbenjs/vite-plugin-compression) - A plugin to statically gzip the css and js files in the flash file system
+
 * [node.js](https://nodejs.org/en/) - Used to compile the vue app
-* [webpack](https://webpack.js.org) - Module bundler for the vue app
-* [pm1006 on github](https://github.com/bertrik/pm1006) - code for receiving the sensor data
+
+* [pm1006 on github](https://github.com/bertrik/pm1006) - code for receiving the Vindriktning sensor data
+
+* [Raspberry PI SHT1x Library](https://www.john.geek.nz/2012/08/reading-data-from-a-sensirion-sht1x-with-a-raspberry-pi/) - A full implementation of the comms protocol for the Sensirion SHT1x sensor
+
+* [Bosch BME280 Driver](https://github.com/BoschSensortec/BME280_driver) - manufacturer provided driver for the alternative temp and rH sensor
 
 ## Authors
 

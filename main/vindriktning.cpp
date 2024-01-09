@@ -1,18 +1,14 @@
 /*
-	--------------------------------------------------------------------------------
-
-    ESPDustLogger       
-    
-    ESP32 based IoT Device for air quality logging featuring an MQTT client and 
-    REST API access. Works in conjunction with a VINDRIKTNING air sensor from IKEA.
-    
-
-	This code is based on Bertrik Sikken PM1006 class available at
-	https://github.com/bertrik/pm1006
-
     --------------------------------------------------------------------------------
 
-    Copyright (c) 2021 Tim Hagemann / way2.net Services
+    way2.net ESPLogger       
+    
+    ESP32 based IoT Device for various sensor logging featuring an MQTT client and 
+    REST API access. 
+    
+    --------------------------------------------------------------------------------
+
+    Copyright (c) 2024 Tim Hagemann / way2.net Services
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal

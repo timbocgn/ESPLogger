@@ -37,13 +37,13 @@
 
 // --- debug setting to stub the sensor readings
 
-#define SENSOR_CONFIG_STUB_SENSORS 
+//#define SENSOR_CONFIG_STUB_SENSORS 
 
 // --- these are my device configurations - please change accordingly
 
-#define DEVICE_ESP_TEMPLOGGER  
+//#define DEVICE_ESP_TEMPLOGGER  
 //#define DEVICE_ESP_DUSTLOGGER  
-//#define DEVICE_ESP_TEMPLOGGERV2
+#define DEVICE_ESP_TEMPLOGGERV2
 
 // --- how many sensors do we have?
 
@@ -53,6 +53,8 @@
 
     // --- for each sensor, specify the class, the pin params and the data params. Meaning of these parameter
     //     is defined in the sensor class implementation
+
+      // --- Pins: 0: Clock 1: Data / Data: <not used>
 
     #define SENSOR_CONFIG_SENSOR1_CLASS SHT1x
     #define SENSOR_CONFIG_SENSOR1_PINS  {GPIO_NUM_26,GPIO_NUM_25,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC}
@@ -71,6 +73,8 @@
     // --- for each sensor, specify the class, the pin params and the data params. Meaning of these parameter
     //     is defined in the sensor class implementation
 
+    // --- Pins: 0: Serial In / Data: 0: UART port
+
     #define SENSOR_CONFIG_SENSOR1_CLASS CVindriktning
     #define SENSOR_CONFIG_SENSOR1_PINS  {GPIO_NUM_25,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC}
     #define SENSOR_CONFIG_SENSOR1_DATA  {1,0,0,0,0,0}
@@ -79,16 +83,16 @@
 
 #ifdef DEVICE_ESP_TEMPLOGGERV2
 
-    #error DRAFT
-
-    #define SENSOR_CONFIG_SENSOR_CNT    2
+    #define SENSOR_CONFIG_SENSOR_CNT    1
 
     // --- for each sensor, specify the class, the pin params and the data params. Meaning of these parameter
     //     is defined in the sensor class implementation
 
-    #define SENSOR_CONFIG_SENSOR1_CLASS CVindriktning
-    #define SENSOR_CONFIG_SENSOR1_PINS  {GPIO_NUM_0,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC}
-    #define SENSOR_CONFIG_SENSOR1_DATA  {0,1,2,3,4,5}
+    // --- Pins: 0: SDA 1: SCL / Data: 0: I2C port
+
+    #define SENSOR_CONFIG_SENSOR1_CLASS CBme280Sensor
+    #define SENSOR_CONFIG_SENSOR1_PINS  {GPIO_NUM_25,GPIO_NUM_26,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC}
+    #define SENSOR_CONFIG_SENSOR1_DATA  {0,0,0,0,0,0}
 
 #endif
 

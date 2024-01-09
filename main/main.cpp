@@ -350,6 +350,35 @@ void app_main()
 
     ESP_ERROR_CHECK(g_ConfigManager.InitConfigManager());
 
+    // --- check for the user pressing the bootstrap key (on startup)
+
+    if (g_InfoManager.IsBootstrapActivated())  
+    {
+        g_AppLogger.Log("Bootstrap activated by user. Reset bootstrap flag and reboot!");
+
+        if (g_ConfigManager.GetIntValue(CFMGR_BOOTSTRAP_DONE) == 0)
+        {
+            g_AppLogger.Log("Device not bootstrapped - ignore!");
+        }
+        else
+        {
+            g_AppLogger.Log("Reset bootstrap flag and reboot!");
+
+            // --- set the flash flag to "not configured"
+
+            g_ConfigManager.SetIntValue(CFMGR_BOOTSTRAP_DONE,0);
+
+            // --- be sure to let the flash write the stuff
+
+            nvs_flash_deinit();
+
+            // --- and reboot
+
+            esp_restart();
+        }
+        
+    }      
+
     // ---- init netif lib
 
     esp_netif_init();
@@ -410,39 +439,15 @@ void app_main()
     g_AppLogger.Log("Start MQTT manager");
     g_MqttManager.InitManager();
 
+
+
 	// ---- main measurement loop
 
     ESP_LOGI(TAG, "Enter the main program loop");
     while(1) 
     {
-        // --- check for the user pressing the bootstrap key
-
-        if (g_InfoManager.IsBootstrapActivated())  
-        {
-            g_AppLogger.Log("Bootstrap activated by user. Reset bootstrap flag and reboot!");
-
-            if (g_ConfigManager.GetIntValue(CFMGR_BOOTSTRAP_DONE) == 0)
-            {
-                g_AppLogger.Log("Device not bootstrapped - ignore!");
-            }
-            else
-            {
-                g_AppLogger.Log("Reset bootstrap flag and reboot!");
-
-                // --- set the flash flag to "not configured"
-
-                g_ConfigManager.SetIntValue(CFMGR_BOOTSTRAP_DONE,0);
-
-                // --- be sure to let the flash write the stuff
-
-                nvs_flash_deinit();
-
-                // --- and reboot
-
-                esp_restart();
-            }
-            
-        }    
+        
+        heap_caps_check_integrity_all(true);
 
 		ProcessMeasurements();
         vTaskDelay(5000 / portTICK_PERIOD_MS);
