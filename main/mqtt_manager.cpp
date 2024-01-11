@@ -62,14 +62,7 @@
 #include "config_manager_defines.h"
 #include "mqtt_manager.h"
 #include "sensor_manager.h"
-
-/*
-#define CFMGR_MQTT_SERVER       "mqtt_server"
-#define CFMGR_MQTT_PORT         "mqtt_port"
-#define CFMGR_MQTT_TOPIC        "mqtt_topic"
-#define CFMGR_MQTT_TIME         "mqtt_time"
-#define CFMGR_MQTT_ENABLE       "mqtt_enable"
-*/
+#include "applogger.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -106,7 +99,8 @@ void MqttManager::ProcessCallback(void)
 
         m_delay_current = m_mqtt_delay;
 
-        std::string l_topic = g_ConfigManager.GetStringValue(CFMGR_MQTT_TOPIC);
+        std::string l_topic  = g_ConfigManager.GetStringValue(CFMGR_MQTT_TOPIC);
+        std::string l_server = g_ConfigManager.GetStringValue(CFMGR_MQTT_SERVER);
 
         // --- now loop over all sensors and send a message
 
@@ -118,11 +112,6 @@ void MqttManager::ProcessCallback(void)
             cJSON *root = cJSON_CreateObject();
             g_SensorManager.GetSensor(l_senidx)->AddValuesToJSON_MQTT(root);
 
-/*            
-            cJSON_AddNumberToObject(root, "pm1", ;
-            cJSON_AddNumberToObject(root, "pm2", g_SensorManager.GetSensor(l_senidx).GetPM2());
-            cJSON_AddNumberToObject(root, "pm10", g_SensorManager.GetSensor(l_senidx).GetPM10());
-  */          
             const char *sys_info = cJSON_Print(root);
             
             char l_snum[5];
@@ -134,7 +123,7 @@ void MqttManager::ProcessCallback(void)
             int l_err = esp_mqtt_client_publish(m_mqtt_hdl, l_fulltopic.c_str(), sys_info,0, 0,0);
             if (l_err == -1)
             {
-                ESP_LOGE(TAG, "Error sending mqtt message '%s' to topic %s", sys_info,l_fulltopic.c_str());
+                g_AppLogger.Log("Error sending MQTT message to topic '%s' to server '%s'",l_fulltopic.c_str(),l_server.c_str());
             }
             else
             {
@@ -153,8 +142,6 @@ void MqttManager::ProcessCallback(void)
 
 esp_err_t MqttManager::SetupMqtt(void)
 {
-    ESP_LOGI(TAG, "MqttManager::SetupMqtt()");
-
     std::string l_server = g_ConfigManager.GetStringValue(CFMGR_MQTT_SERVER);
 
     esp_mqtt_client_config_t mqtt_cfg;
@@ -162,23 +149,23 @@ esp_err_t MqttManager::SetupMqtt(void)
 
     mqtt_cfg.broker.address.uri = l_server.c_str();
 
-    ESP_LOGE(TAG, "before esp_mqtt_client_init");
     m_mqtt_hdl = esp_mqtt_client_init(&mqtt_cfg);
     if (!m_mqtt_hdl)
     {
+        g_AppLogger.Log("Failed to connect to server '%s'",l_server.c_str());
+
         ESP_LOGE(TAG, "Error on esp_mqtt_client_init (%s)", l_server.c_str());
         return ESP_FAIL;
     }
-    ESP_LOGE(TAG, "after esp_mqtt_client_init");
 
     esp_err_t l_ee = esp_mqtt_client_start(m_mqtt_hdl);
     if (l_ee != ESP_OK)
     {
+        g_AppLogger.Log("Failed to connect to server '%s' (%d)",l_server.c_str(),l_ee);
+
         ESP_LOGE(TAG, "Error on esp_mqtt_client_start (%s): %d", l_server.c_str(),l_ee);
         return l_ee;
     }
-
-    ESP_LOGE(TAG, "after esp_mqtt_client_start");
 
     // ---- timer stuff
 
@@ -253,16 +240,18 @@ void MqttManager::UpdateConfig(void)
 
         if (m_mqtt_hdl)
         {
-            // ---- we already are up and running: so just update the potentially changed URI
-            
-            std::string l_server = g_ConfigManager.GetStringValue(CFMGR_MQTT_SERVER);
-            esp_mqtt_client_set_uri(m_mqtt_hdl,l_server.c_str());
+            g_AppLogger.Log("Updating MQTT server configuration");
+
+            Shutdown();
+            SetupMqtt();
         }
         else
         {
             // --- MQTT was switched on...so do the full party
 
             SetupMqtt();
+
+            g_AppLogger.Log("Start MQTT client");
         }        
     }
     else
@@ -274,20 +263,13 @@ void MqttManager::UpdateConfig(void)
             // ---- remove all
 
             Shutdown();
+            g_AppLogger.Log("Shutdown MQTT client");
         }
         else
         {
             // --- do nothing
         }
     }
-
-    // ---- the broker might have changed, so close the existing connection
-
-    if (m_mqtt_hdl)
-    {
-        
-    }
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
