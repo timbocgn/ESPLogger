@@ -184,7 +184,7 @@ static void start_wifi_client()
         {
             wifi_config.ap.authmode = WIFI_AUTH_OPEN;
         }
-
+        
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
         ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
         ESP_ERROR_CHECK(esp_wifi_start());
@@ -414,7 +414,7 @@ void app_main()
 
     // ---- now start the web server
 
-    g_AppLogger.Log("Start REST server");
+    g_AppLogger.Log("Start web server");
     start_rest_server(CONFIG_EXAMPLE_WEB_MOUNT_POINT);
 
     // --- start the mqtt manager

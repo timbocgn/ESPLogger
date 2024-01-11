@@ -1,0 +1,20 @@
+------------------------------------------------------------
+                           TODO LIST
+------------------------------------------------------------
+
+Frontend
+------------------------------------------------------------
+
+
+- MDI icons still do not who up
+- formatting of sensor data
+- change favicon from vue.js to way2.net
+
+
+Backend
+------------------------------------------------------------
+
++ set hostname to esplogger or device name, but not to espressif
+- handle multiple sensors on one I2C bus (check if bus has been initialized already)
+- implement OTA feature
+
