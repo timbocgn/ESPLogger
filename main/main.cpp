@@ -306,7 +306,7 @@ extern "C"
 
 void app_main()
 {
-     vTaskDelay(5000 / portTICK_PERIOD_MS);
+     //vTaskDelay(5000 / portTICK_PERIOD_MS);
      
     // ---- init flash lib
 

@@ -41,8 +41,7 @@
 #include <stdio.h>
 #include <map>
 
-#include "driver/i2c_master.h"
-
+#include "driver/i2c.h"
 #include "csensor.h"
 
 #include "bme280.h"
@@ -60,7 +59,7 @@ public:
 
 	// --- actions
 
-	bool SetupSensor(gpio_num_t f_sda,gpio_num_t f_scl,i2c_port_num_t f_i2c_port,int f_dev_address);
+	bool SetupSensor(gpio_num_t f_sda,gpio_num_t f_scl,i2c_port_t f_i2c_port,int f_dev_address);
 
 	// --- getter
 
@@ -100,6 +99,8 @@ private:
 	static BME280_INTF_RET_TYPE bme280_i2c_write(uint8_t reg_addr, const uint8_t *reg_data, uint32_t length, void *intf_ptr);
 	static void bme280_delay_us(uint32_t period_us, void *intf_ptr);
 
+	int8_t get_temperature(uint32_t period);
+
 	// --- our last measurements
 
 	float m_temp;
@@ -110,18 +111,18 @@ private:
 
 	gpio_num_t 		m_pin_sda;
 	gpio_num_t 		m_pin_scl;
-	i2c_port_num_t 	m_i2c_port;
+	i2c_port_t	 	m_i2c_port;
 	int				m_bme280_i2c_adr;
 	int 			m_dev_address;
 
 	// --- esp-idf I2C stuff
 
-	typedef std::map<i2c_port_num_t,i2c_master_bus_handle_t> bus_handle_map_t; // this is a structure to keep track of our device hand
+	//typedef std::map<i2c_port_num_t,i2c_master_bus_handle_t> bus_handle_map_t; // this is a structure to keep track of our device hand
 
-	i2c_master_dev_handle_t m_i2c_dev_handle;
-	i2c_master_bus_handle_t m_i2c_bus_handle;		// --- local copy - master is in the map<>
+	//i2c_master_dev_handle_t m_i2c_dev_handle;
+	//i2c_master_bus_handle_t m_i2c_bus_handle;		// --- local copy - master is in the map<>
 
-	static bus_handle_map_t m_bus_handle_map;
+	//static bus_handle_map_t m_bus_handle_map;
 
 	// --- BMW280 stuff
 
