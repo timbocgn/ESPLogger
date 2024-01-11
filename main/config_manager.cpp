@@ -64,7 +64,10 @@ esp_err_t ConfigManager::InitConfigManager(void)
     
     esp_err_t err = nvs_flash_init();
 
-    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) 
+    {
+        ESP_LOGI(TAG,"InitConfigManager: NVS partition was truncated and needs to be erased (%d)",err);
+
         // --- NVS partition was truncated and needs to be erased
         // --- Retry nvs_flash_init
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -144,6 +147,8 @@ std::string ConfigManager::GetStringValue(const char *f_key)
 
     if (err == ESP_ERR_NVS_NOT_FOUND)
     {
+        ESP_LOGI(TAG, "ConfigManager::GetStringValue: key not found '%s'",f_key); 
+
         // ---- return empty string
 
         return string();
@@ -211,7 +216,9 @@ int ConfigManager::GetIntValue(const char *f_key)
 
     if (err == ESP_ERR_NVS_NOT_FOUND)
     {
-        // ---- return empty string
+        ESP_LOGI(TAG, "ConfigManager::GetIntValue: key not found '%s'",f_key); 
+        
+        // ---- return zero as default
 
         return 0;
     }

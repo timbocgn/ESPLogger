@@ -306,6 +306,8 @@ extern "C"
 
 void app_main()
 {
+     vTaskDelay(5000 / portTICK_PERIOD_MS);
+     
     // ---- init flash lib
 
     ESP_ERROR_CHECK(nvs_flash_init());
@@ -319,36 +321,17 @@ void app_main()
 
     ESP_ERROR_CHECK(g_AppLogger.InitAppLogger());    
 
-
-    for (int i = 0; i < 10;++i)
-    {   
-/*        g_AppLogger.Log("Log Line %d",i);
-
-        ESP_LOGI(TAG, "----------------------------------------------");
-        for (int qq = 0; qq < 10;++qq)
-        {   
-            const char *l_s = g_AppLogger.GetLine(qq);
-            if (l_s)
-            {
-                ESP_LOGI(TAG, "LINE %02d -> %s",qq,l_s);
-
-            }
-            else
-            {
-                ESP_LOGI(TAG, "LINE %02d -> NULL",qq);
-            }
-        }
-        ESP_LOGI(TAG, "----------------------------------------------");*/
-    }
-
-
     // --- start the info manager
 
     g_InfoManager.InitManager();
 
     // ---- init config storage
 
+    ESP_LOGI(TAG,"Initialize ConfigManager");
+
     ESP_ERROR_CHECK(g_ConfigManager.InitConfigManager());
+
+    ESP_LOGI(TAG,"Config %s -> %d",CFMGR_BOOTSTRAP_DONE, g_ConfigManager.GetIntValue(CFMGR_BOOTSTRAP_DONE));
 
     // --- check for the user pressing the bootstrap key (on startup)
 
@@ -439,7 +422,9 @@ void app_main()
     g_AppLogger.Log("Start MQTT manager");
     g_MqttManager.InitManager();
 
+    // --- just before we enter the main loop - get all GPIO states to the console
 
+    gpio_dump_io_configuration(stdout, SOC_GPIO_VALID_GPIO_MASK);
 
 	// ---- main measurement loop
 

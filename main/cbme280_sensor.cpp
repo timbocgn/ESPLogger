@@ -57,12 +57,64 @@
 
 static const char *TAG = "CBme280Sensor";
 
+
+#ifdef ALTERNATIVE_FUCK
+
 ////////////////////////////////////////////////////////////////////////////////////////
 
 BME280_INTF_RET_TYPE CBme280Sensor::bme280_i2c_read(uint8_t reg_addr, uint8_t *reg_data, uint32_t length, void *intf_ptr)
 {
 	CBme280Sensor *l_this = (CBme280Sensor *)intf_ptr;
-	return BME280_E_COMM_FAIL;
+
+	ESP_LOGI(TAG,"bme280_i2c_read reg_addr %02x length %d",(int)reg_addr,(int)length);
+
+	// --- write register address
+
+ESP_LOGE(TAG,"----->Before transmit-----");
+
+	esp_err_t l_retcode = i2c_master_transmit(l_this->m_i2c_dev_handle, &reg_addr, sizeof(uint8_t), 1000);
+	if (l_retcode != ESP_OK)
+	{
+		ESP_LOGE(TAG,"bme280_i2c_read / i2c_master_transmit failed with %d", l_retcode);
+		return BME280_E_COMM_FAIL;
+	}
+ESP_LOGE(TAG,"----->after transmit-----");
+
+	// --- write data bytes 
+ESP_LOGE(TAG,"----->Before receive-----");
+	l_retcode = i2c_master_receive(l_this->m_i2c_dev_handle, reg_data, length, 1000);
+	if (l_retcode != ESP_OK)
+	{
+		ESP_LOGE(TAG,"bme280_i2c_read / i2c_master_receive failed with %d", l_retcode);
+		return BME280_E_COMM_FAIL;
+	}
+ESP_LOGE(TAG,"----->after receive-----");
+
+	return BME280_INTF_RET_SUCCESS;
+}
+#endif
+
+
+BME280_INTF_RET_TYPE CBme280Sensor::bme280_i2c_read(uint8_t reg_addr, uint8_t *reg_data, uint32_t length, void *intf_ptr)
+{
+	CBme280Sensor *l_this = (CBme280Sensor *)intf_ptr;
+
+	ESP_LOGI(TAG,"bme280_i2c_read reg_addr %02x length %d",(int)reg_addr,(int)length);
+
+	// --- write register address
+
+ESP_LOGE(TAG,"----->Before i2c_master_transmit_receive-----");
+
+	esp_err_t l_retcode = i2c_master_transmit_receive(l_this->m_i2c_dev_handle,  &reg_addr, sizeof(uint8_t), reg_data, length, 1000);
+	if (l_retcode != ESP_OK)
+	{
+		ESP_LOGE(TAG,"bme280_i2c_read / i2c_master_transmit_receive failed with %d", l_retcode);
+		return BME280_E_COMM_FAIL;
+	}
+ESP_LOGE(TAG,"----->after i2c_master_transmit_receive-----");
+
+
+	return BME280_INTF_RET_SUCCESS;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -70,19 +122,48 @@ BME280_INTF_RET_TYPE CBme280Sensor::bme280_i2c_read(uint8_t reg_addr, uint8_t *r
 BME280_INTF_RET_TYPE CBme280Sensor::bme280_i2c_write(uint8_t reg_addr, const uint8_t *reg_data, uint32_t length, void *intf_ptr)
 {
 	CBme280Sensor *l_this = (CBme280Sensor *)intf_ptr;
-	return BME280_E_COMM_FAIL;
+
+	ESP_LOGI(TAG,"bme280_i2c_write reg_addr %02x",(int)reg_addr);
+
+	// --- write register address
+
+	esp_err_t l_retcode = i2c_master_transmit(l_this->m_i2c_dev_handle, &reg_addr, sizeof(uint8_t), 100);
+	if (l_retcode != ESP_OK)
+	{
+		ESP_LOGE(TAG,"bme280_i2c_write / i2c_master_transmit (1) failed with %d", l_retcode);
+		return BME280_E_COMM_FAIL;
+	}
+
+	// --- write data bytes 
+
+	l_retcode = i2c_master_transmit(l_this->m_i2c_dev_handle, reg_data, length, 100);
+	if (l_retcode != ESP_OK)
+	{
+		ESP_LOGE(TAG,"bme280_i2c_write / i2c_master_transmit (2) failed with %d", l_retcode);
+		return BME280_E_COMM_FAIL;
+	}
+
+	return BME280_INTF_RET_SUCCESS;
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
 void CBme280Sensor::bme280_delay_us(uint32_t period_us, void *intf_ptr)
 {
+	// --- a very simple forward to a RTOS function
+
 	ets_delay_us(period_us);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+
+CBme280Sensor::bus_handle_map_t CBme280Sensor::m_bus_handle_map;
+
 ////////////////////////////////////////////////////////////////////////////////////////
 
 CBme280Sensor::CBme280Sensor(void)
@@ -102,13 +183,82 @@ CBme280Sensor::CBme280Sensor(void)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-bool CBme280Sensor::SetupSensor(gpio_num_t f_sda,gpio_num_t f_scl,i2c_port_num_t f_i2c_port)
+bool CBme280Sensor::SetupSensor(gpio_num_t f_sda,gpio_num_t f_scl,i2c_port_num_t f_i2c_port,int f_dev_address)
 {
 	m_pin_sda			= f_sda;
 	m_pin_scl			= f_scl;
 	m_i2c_port 			= f_i2c_port;
+	m_dev_address		= f_dev_address;
 
-	ESP_LOGI(TAG,"Setting up sensor on i2c %d on sda pin %d scl pin %d", (int)m_i2c_port,(int)m_pin_sda,(int)m_pin_scl);
+	ESP_LOGI(TAG,"Setting up sensor on i2c %d on sda pin %d scl pin %d i2c %d addr %d", (int)m_i2c_port,(int)m_pin_sda,(int)m_pin_scl,(int)f_i2c_port,f_dev_address);
+
+	// --- I2C handling is a bit more complicated. Since two sensors can be on the same I2C bus 
+	//     the bus must only initalized once. But the CSensor instances are independent.
+	//     So the code below keeps track of the initialized busses and reuses them
+
+	if (m_bus_handle_map.contains(m_i2c_port))
+	{
+		// --- so the bus already has been initialized - reuse the existing handle
+
+		m_i2c_bus_handle = m_bus_handle_map[m_i2c_port];
+		
+		ESP_LOGI(TAG,"Reuse I2C bus handle %x", (int)m_i2c_bus_handle);
+	}
+	else
+	{
+		ESP_LOGI(TAG,"Initialize I2C bus for port %d", (int)f_i2c_port);
+
+		// --- we need to initialize the bus / configure I2C master
+
+		i2c_master_bus_config_t i2c_mst_config;
+
+		i2c_mst_config.clk_source 			= I2C_CLK_SRC_DEFAULT;
+		i2c_mst_config.i2c_port 			= m_i2c_port;
+		i2c_mst_config.scl_io_num 			= m_pin_scl;
+		i2c_mst_config.sda_io_num 			= m_pin_sda;
+		i2c_mst_config.intr_priority		= 0;
+		i2c_mst_config.glitch_ignore_cnt 	= 7;
+		i2c_mst_config.trans_queue_depth	= 0;	// --- this has to be zero, otherwise the interface becomes async!
+
+		i2c_mst_config.flags.enable_internal_pullup = true;
+
+		// --- now do it
+
+		esp_err_t l_retcode = i2c_new_master_bus(&i2c_mst_config, &m_i2c_bus_handle);
+		if (l_retcode != ESP_OK)
+		{
+			ESP_LOGE(TAG,"bme280_init / i2c_new_master_bus failed with %d", l_retcode);
+			return false;
+		}
+
+		ESP_LOGI(TAG,"New I2C bus handle %x", (int)m_i2c_bus_handle);
+
+		// --- and save the handle for potential reuse
+
+		m_bus_handle_map[m_i2c_port] = m_i2c_bus_handle;
+	}
+
+	// --- calculate address (BMW280 only supports 0x76 and 0x77)
+
+	assert(f_dev_address == 0 ||  f_dev_address == 1);
+	uint16_t l_realaddr = 0x76 + f_dev_address;
+
+	ESP_LOGI(TAG,"Use device address %02X", (int)l_realaddr);
+
+	// --- now configure our sensor device
+
+	i2c_device_config_t dev_cfg = {
+		.dev_addr_length = I2C_ADDR_BIT_LEN_7,
+		.device_address = l_realaddr,
+		.scl_speed_hz = 100000,
+	};
+
+	esp_err_t l_retcode = i2c_master_bus_add_device(m_i2c_bus_handle, &dev_cfg, &m_i2c_dev_handle);
+	if (l_retcode != ESP_OK)
+	{
+		ESP_LOGE(TAG,"bme280_init / i2c_master_bus_add_device failed with %d", l_retcode);
+		return false;
+	}
 
     // --- initialize the device structure for the low level Bosch API
 
@@ -261,9 +411,9 @@ bool CBme280Sensor::SetupSensor(gpio_num_t *f_pins,int *f_data)
 	return true;
 
 #else
-	// --- Pins: 0: SDA 1: SCL   Data: 0: I2C port
+	// --- Pins: 0: SDA 1: SCL / Data: 0: I2C port 1: I2C address (0 or 1)
 
-	return SetupSensor(f_pins[0],f_pins[1],(i2c_port_num_t)f_data[0]);
+	return SetupSensor(f_pins[0],f_pins[1],(i2c_port_num_t)f_data[0],f_data[1]);
 
 #endif
 }
