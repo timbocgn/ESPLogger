@@ -124,6 +124,7 @@
         "numline",
         "NUMLINES",
         "onlysetifnotempty",
+        "POWERMODE",
         "prodname",
         "rawidx",
         "RSSI",
@@ -164,6 +165,7 @@
         "Wasserdampfes",
         "wifiscan",
         "wlanpwd",
+        "writebuf",
         "wscf"
     ]
 }

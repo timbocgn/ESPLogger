@@ -41,10 +41,11 @@
 #include "sdkconfig.h"
 #include "cJSON.h"
 
-
 ////////////////////////////////////////////////////////////////////////////////////////
 
 // --- this is an abstract base class forming the interface for all sensors
+
+#define CSENSOR_MAX_TEMP_LEN 20
 
 class CSensor
 {
@@ -57,7 +58,18 @@ public:
     virtual void AddValuesToJSON_MQTT(cJSON *f_root) = 0;
     virtual void AddValuesToJSON_API(cJSON *f_root) = 0;
 
+protected:
+    // --- some helper
 
+    const char *float_2_string(const char *f_format,const float f_value)
+    {
+        snprintf(m_temp_str,10,f_format,f_value);
+        return m_temp_str;
+    }
+
+private:
+
+    char m_temp_str[CSENSOR_MAX_TEMP_LEN];
 };
 
 #endif

@@ -354,15 +354,15 @@ void CVindriktning::AddValuesToJSON_API(cJSON *f_root)
     cJSON *pm10 = cJSON_CreateObject();
 
 	cJSON_AddStringToObject(pm1, "unit", "ppm (1 um)");
-	cJSON_AddNumberToObject(pm1, "value", GetPM1());
+	cJSON_AddStringToObject(pm1, "value", float_2_string("%.2f",GetPM1()));
 	cJSON_AddStringToObject(pm1, "text", "Small particles");
 
 	cJSON_AddStringToObject(pm2, "unit", "ppm (2.5 um)");
-	cJSON_AddNumberToObject(pm2, "value", GetPM2());
+	cJSON_AddStringToObject(pm2, "value", float_2_string("%.2f",GetPM2()));
 	cJSON_AddStringToObject(pm2, "text", "Medium particles");
 
 	cJSON_AddStringToObject(pm10, "unit", "ppm (10 um)");
-	cJSON_AddNumberToObject(pm10, "value", GetPM10());
+	cJSON_AddStringToObject(pm10, "value", float_2_string("%.2f",GetPM10()));
 	cJSON_AddStringToObject(pm10, "text", "Big particles");
 
 	cJSON_AddItemToObject(f_root,"pm1",pm1);

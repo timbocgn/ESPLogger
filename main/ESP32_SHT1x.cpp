@@ -600,15 +600,15 @@ void SHT1x::AddValuesToJSON_API(cJSON *f_root)
     cJSON *dp 	= cJSON_CreateObject();
 
 	cJSON_AddStringToObject(temp, "unit", "C");
-	cJSON_AddNumberToObject(temp, "value", GetTemp());
+	cJSON_AddStringToObject(temp, "value", float_2_string("%.2f",GetTemp()));
 	cJSON_AddStringToObject(temp, "text", "Temperature");
 
 	cJSON_AddStringToObject(rh, "unit", "% rH");
-	cJSON_AddNumberToObject(rh, "value", GetRH());
+	cJSON_AddStringToObject(rh, "value", float_2_string("%.2f",GetRH()));
 	cJSON_AddStringToObject(rh, "text", "Relative Humidity");
 
 	cJSON_AddStringToObject(dp, "unit", "C");
-	cJSON_AddNumberToObject(dp, "value", GetDP());
+	cJSON_AddStringToObject(dp, "value", float_2_string("%.2f",GetDP()));
 	cJSON_AddStringToObject(dp, "text", "Dew Point");
 
 	cJSON_AddItemToObject(f_root,"temp",temp);

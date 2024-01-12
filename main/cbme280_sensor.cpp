@@ -332,20 +332,20 @@ void CBme280Sensor::AddValuesToJSON_MQTT(cJSON *f_root)
 
 void CBme280Sensor::AddValuesToJSON_API(cJSON *f_root)
 {
-    cJSON *t 	= cJSON_CreateObject();
+	cJSON *t 	= cJSON_CreateObject();
     cJSON *r 	= cJSON_CreateObject();
     cJSON *p 	= cJSON_CreateObject();
 
 	cJSON_AddStringToObject(t, "unit", "C");
-	cJSON_AddNumberToObject(t, "value", m_temp);
+	cJSON_AddStringToObject(t, "value", float_2_string("%.2f",m_temp));
 	cJSON_AddStringToObject(t, "text", "Temperature");
 
 	cJSON_AddStringToObject(r, "unit", "%");
-	cJSON_AddNumberToObject(r, "value", m_rh);
+	cJSON_AddStringToObject(r, "value", float_2_string("%.2f",m_rh));
 	cJSON_AddStringToObject(r, "text", "Relative Humidity");
 
 	cJSON_AddStringToObject(p, "unit", "mBar");
-	cJSON_AddNumberToObject(p, "value", m_pressure);
+	cJSON_AddStringToObject(p, "value", float_2_string("%.2f",m_pressure));
 	cJSON_AddStringToObject(p, "text", "Pressure");
 
 	cJSON_AddItemToObject(f_root,"temp",t);
