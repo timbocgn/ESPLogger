@@ -8,7 +8,7 @@ Frontend
 
 + formatting of sensor data
 + change favicon from vue.js to way2.net
-- MDI icons still do not who up
++ MDI icons still do not who up
 
 
 Backend
@@ -16,6 +16,6 @@ Backend
 
 + set hostname to esplogger or device name, but not to espressif
 + handle multiple sensors on one I2C bus (check if bus has been initialized already)
++ fix race condition: mqtt tries to send data while wifi is not connected. Ugly messages in log
 - implement OTA feature
-- fix race condition: mqtt tries to send data while wifi is not connected. Ugly messages in log
 

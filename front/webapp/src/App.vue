@@ -7,7 +7,6 @@ import { mdiHomeCircle } from '@mdi/js'
 import { mdiAccountSettings } from '@mdi/js'
 import { mdiHelpCircle } from '@mdi/js'
 
-
 const items = 
         [
           { title: 'Home', icon: mdiHomeCircle, to: '/' },
@@ -29,7 +28,7 @@ const iconMenu = mdiMenu;
       short
       clipped-left
     >
-      <v-app-bar-nav-icon @click.stop="drawer = !drawer"><v-icon>{{ iconMenu }}</v-icon></v-app-bar-nav-icon>
+      <v-app-bar-nav-icon ><img src="/favicon.ico" /></v-app-bar-nav-icon>
       <v-toolbar-title>way2.net ESP Logger</v-toolbar-title>
     </v-app-bar>
 

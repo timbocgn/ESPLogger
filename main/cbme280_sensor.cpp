@@ -344,7 +344,7 @@ void CBme280Sensor::AddValuesToJSON_API(cJSON *f_root)
 	cJSON_AddStringToObject(r, "value", float_2_string("%.2f",m_rh));
 	cJSON_AddStringToObject(r, "text", "Relative Humidity");
 
-	cJSON_AddStringToObject(p, "unit", "mBar");
+	cJSON_AddStringToObject(p, "unit", "mbar");
 	cJSON_AddStringToObject(p, "value", float_2_string("%.2f",m_pressure));
 	cJSON_AddStringToObject(p, "text", "Pressure");
 
