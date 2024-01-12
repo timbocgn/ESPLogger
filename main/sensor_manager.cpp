@@ -65,13 +65,13 @@ void SensorManager::ProcessMeasurements(void)
     {
         if (!m_Sensors[i]->PerformMeasurement())
         {
-             g_AppLogger.Log("Failed to perform a measurement on sensor %d", i);
+             g_AppLogger.Log("Failed to perform a measurement on sensor %d", i+1);
              g_AppLogger.Log("Sensor Identification: %s", m_Sensors[i]->GetSensorDescriptionString().c_str());
 
         }
         else
         {
-            ESP_LOGI(TAG, "Sensor %d: %s",i,m_Sensors[i]->GetSensorValueString().c_str());
+            ESP_LOGI(TAG, "Sensor %d: %s",i+1,m_Sensors[i]->GetSensorValueString().c_str());
         }
     }
 }

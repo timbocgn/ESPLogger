@@ -54,6 +54,9 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
+bool CBme280Sensor::m_i2c_initialized[I2C_NUM_MAX];
+bool CBme280Sensor::m_i2c_array_initialized = false;
+
 ////////////////////////////////////////////////////////////////////////////////////////
 
 static const char *TAG = "CBme280Sensor";
@@ -120,8 +123,6 @@ void CBme280Sensor::bme280_delay_us(uint32_t period_us, void *intf_ptr)
 ////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
 
-//Bme280Sensor::bus_handle_map_t CBme280Sensor::m_bus_handle_map;
-
 ////////////////////////////////////////////////////////////////////////////////////////
 
 CBme280Sensor::CBme280Sensor(void)
@@ -135,52 +136,13 @@ CBme280Sensor::CBme280Sensor(void)
 	m_temp				= 0;
 	m_rh				= 0;
 	m_pressure			= 0;
+
+	if (!m_i2c_array_initialized)
+	{
+		for (int i=0;i<I2C_NUM_MAX;++i) m_i2c_initialized[i] = false;
+		m_i2c_array_initialized = true;
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-
-#define SAMPLE_COUNT  UINT8_C(1)
-
-int8_t CBme280Sensor::get_temperature(uint32_t period)
-{
-    int8_t rslt = BME280_E_NULL_PTR;
-    int8_t idx = 0;
-    uint8_t status_reg;
-    struct bme280_data comp_data;
-
-    while (idx < SAMPLE_COUNT)
-    {
-        rslt = bme280_get_regs(BME280_REG_STATUS, &status_reg, 1, &m_bme280_dev);
-		if (rslt != BME280_OK)
-		{
-			ESP_LOGE(TAG,"bme280_get_regs failed with %d", rslt);
-			return false;
-		}	
-
-ESP_LOGE(TAG,"status ref %0X", status_reg);
-
-     //   if (status_reg & BME280_STATUS_MEAS_DONE)
-        {
-            /* Measurement time delay given to read sample */
-            m_bme280_dev.delay_us(period, m_bme280_dev.intf_ptr);
-
-            /* Read compensated data */
-            rslt = bme280_get_sensor_data(BME280_TEMP, &comp_data, &m_bme280_dev);
-			if (rslt != BME280_OK)
-			{
-				ESP_LOGE(TAG,"bme280_get_sensor_data failed with %d", rslt);
-				return false;
-			}	
-			m_temp = comp_data.temperature;
-			ESP_LOGI(TAG,"Got temp %f",m_temp);
-			
-            idx++;
-        }
-    }
-
-    return true;
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -193,23 +155,42 @@ bool CBme280Sensor::SetupSensor(gpio_num_t f_sda,gpio_num_t f_scl,i2c_port_t f_i
 
 	ESP_LOGI(TAG,"Setting up sensor on i2c %d on sda pin %d scl pin %d i2c %d addr %d", (int)m_i2c_port,(int)m_pin_sda,(int)m_pin_scl,(int)f_i2c_port,f_dev_address);
 
-    i2c_config_t conf;
+	// ---- be sure the port is valid
 
-	conf.mode = I2C_MODE_MASTER;
-	conf.sda_io_num = m_pin_sda;
-	conf.scl_io_num = m_pin_scl;
-	conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-	conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
-	conf.master.clk_speed = 100000;
-	conf.clk_flags = 0;
+	assert(m_i2c_port < I2C_NUM_MAX);
 
-    i2c_param_config(m_i2c_port, &conf);
-     
-	esp_err_t l_retcode = i2c_driver_install(m_i2c_port,conf.mode, 0, 0, 0);
-	if (l_retcode != ESP_OK)
+	// ---- initialize i2c port
+
+	if (!m_i2c_initialized[m_i2c_port])
 	{
-		ESP_LOGE(TAG,"bme280_init / i2c_driver_install failed with %d", l_retcode);
-		return false;
+		ESP_LOGI(TAG,"Setup i2c port %d",m_i2c_port);
+
+		i2c_config_t conf;
+
+		conf.mode 				= I2C_MODE_MASTER;
+		conf.sda_io_num 		= m_pin_sda;
+		conf.scl_io_num 		= m_pin_scl;
+		conf.sda_pullup_en 		= GPIO_PULLUP_ENABLE;
+		conf.scl_pullup_en 		= GPIO_PULLUP_ENABLE;
+		conf.master.clk_speed 	= 100000;
+		conf.clk_flags 			= 0;
+
+		i2c_param_config(m_i2c_port, &conf);
+		
+		esp_err_t l_retcode = i2c_driver_install(m_i2c_port,conf.mode, 0, 0, 0);
+		if (l_retcode != ESP_OK)
+		{
+			ESP_LOGE(TAG,"bme280_init / i2c_driver_install failed with %d", l_retcode);
+			return false;
+		}
+
+		// --- remember that this I2B is up and ready
+
+		m_i2c_initialized[m_i2c_port] = true;
+	}
+	else
+	{
+		ESP_LOGI(TAG,"Reuse i2c port %d - new pin settings etc are ignored!",m_i2c_port);
 	}
 
     // --- initialize the device structure for the low level Bosch API
@@ -273,33 +254,6 @@ bool CBme280Sensor::SetupSensor(gpio_num_t f_sda,gpio_num_t f_scl,i2c_port_t f_i
 		return false;
 	}
 
-	uint8_t l_sm;
-	rslt = bme280_get_sensor_mode(&l_sm, &m_bme280_dev);
-	if (rslt != BME280_OK)
-	{
-		ESP_LOGE(TAG,"bme280_get_sensor_mode failed with %d", rslt);
-		return false;
-	}
-	else
-	{
-		ESP_LOGE(TAG,"bme280_get_sensor_mode provided with %d", l_sm);
-	}
-
-#ifdef noneed
-    /* Calculate measurement time in microseconds */
-	uint32_t period;
-    rslt = bme280_cal_meas_delay(&period, &settings);
-	if (rslt != BME280_OK)
-	{
-		ESP_LOGE(TAG,"bme280_cal_meas_delay failed with %d", rslt);
-		return false;
-	}
-
-    ESP_LOGI(TAG,"Measurement time : %lu us",period);
-
-    rslt = get_temperature(period);
-#endif
-
 	m_Initialized = true;
 
 	return true;
@@ -318,6 +272,14 @@ bool CBme280Sensor::PerformMeasurement(void)
 
 		return true;
 #else
+
+	if (!m_Initialized)
+	{
+		ESP_LOGE(TAG,"Error in PerformMeasurement() - using an uninitialized sensor");
+		return false;
+	}
+
+	// ---- now do it
 
     int8_t rslt; 
 	struct bme280_data comp_data;
@@ -352,7 +314,7 @@ std::string CBme280Sensor::GetSensorValueString(void)
 std::string CBme280Sensor::GetSensorDescriptionString(void)
 {
 	char l_buf[200];
-	snprintf(l_buf,200,"BME280 Sensor / i2c %d on sda pin %d scl pin %d", (int)m_i2c_port,(int)m_pin_sda,(int)m_pin_scl);
+	snprintf(l_buf,200,"BME280 Sensor / i2c %d on sda pin %d scl pin %d adr %d", (int)m_i2c_port,(int)m_pin_sda,(int)m_pin_scl,(int)m_dev_address);
 
 	return std::string(l_buf);
 }
@@ -372,7 +334,7 @@ void CBme280Sensor::AddValuesToJSON_API(cJSON *f_root)
 {
     cJSON *t 	= cJSON_CreateObject();
     cJSON *r 	= cJSON_CreateObject();
-    cJSON *p = cJSON_CreateObject();
+    cJSON *p 	= cJSON_CreateObject();
 
 	cJSON_AddStringToObject(t, "unit", "C");
 	cJSON_AddNumberToObject(t, "value", m_temp);

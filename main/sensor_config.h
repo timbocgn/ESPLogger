@@ -83,7 +83,7 @@
 
 #ifdef DEVICE_ESP_TEMPLOGGERV2
 
-    #define SENSOR_CONFIG_SENSOR_CNT    1
+    #define SENSOR_CONFIG_SENSOR_CNT    2
 
     // --- for each sensor, specify the class, the pin params and the data params. Meaning of these parameter
     //     is defined in the sensor class implementation
@@ -98,13 +98,6 @@
     #define SENSOR_CONFIG_SENSOR2_PINS  {GPIO_NUM_25,GPIO_NUM_26,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC}
     #define SENSOR_CONFIG_SENSOR2_DATA  {0,1,0,0,0,0}
 
-    #define SENSOR_CONFIG_SENSOR3_CLASS CBme280Sensor
-    #define SENSOR_CONFIG_SENSOR3_PINS  {GPIO_NUM_19,GPIO_NUM_21,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC}
-    #define SENSOR_CONFIG_SENSOR3_DATA  {1,0,0,0,0,0}
-
-    #define SENSOR_CONFIG_SENSOR4_CLASS CBme280Sensor
-    #define SENSOR_CONFIG_SENSOR4_PINS  {GPIO_NUM_19,GPIO_NUM_21,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC}
-    #define SENSOR_CONFIG_SENSOR4_DATA  {1,1,0,0,0,0}
 #endif
 
 // --- as of now up to 4 sensors are possible, just add some #if statements in the sensor manager if you need more

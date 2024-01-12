@@ -39,7 +39,6 @@
 
 #include <unistd.h>
 #include <stdio.h>
-#include <map>
 
 #include "driver/i2c.h"
 #include "csensor.h"
@@ -80,12 +79,6 @@ public:
 
 	// --- internal functions do not use
 
-/*
-	gpio_num_t GetDataPin(void) { return m_pin_data; }
-	uart_port_t GetUart(void) { return m_uart; }
-
-*/
-
 	virtual std::string GetSensorValueString(void);
     virtual std::string GetSensorDescriptionString(void);
  	virtual bool PerformMeasurement(void);
@@ -98,8 +91,6 @@ private:
 	static BME280_INTF_RET_TYPE bme280_i2c_read(uint8_t reg_addr, uint8_t *reg_data, uint32_t length, void *intf_ptr);
 	static BME280_INTF_RET_TYPE bme280_i2c_write(uint8_t reg_addr, const uint8_t *reg_data, uint32_t length, void *intf_ptr);
 	static void bme280_delay_us(uint32_t period_us, void *intf_ptr);
-
-	int8_t get_temperature(uint32_t period);
 
 	// --- our last measurements
 
@@ -115,14 +106,10 @@ private:
 	int				m_bme280_i2c_adr;
 	int 			m_dev_address;
 
-	// --- esp-idf I2C stuff
+	// --- I2C initialization tracking
 
-	//typedef std::map<i2c_port_num_t,i2c_master_bus_handle_t> bus_handle_map_t; // this is a structure to keep track of our device hand
-
-	//i2c_master_dev_handle_t m_i2c_dev_handle;
-	//i2c_master_bus_handle_t m_i2c_bus_handle;		// --- local copy - master is in the map<>
-
-	//static bus_handle_map_t m_bus_handle_map;
+	static bool m_i2c_initialized[I2C_NUM_MAX];
+	static bool m_i2c_array_initialized;
 
 	// --- BMW280 stuff
 
