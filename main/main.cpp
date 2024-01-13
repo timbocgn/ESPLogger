@@ -62,6 +62,9 @@
 #include "mqtt_manager.h"
 #include "applogger.h"
 #include "esp_partition.h"
+#include "ota_manager.h"
+
+#include "timestamp.h"
 
 #define CONFIG_EXAMPLE_WEB_MOUNT_POINT "/www"
 
@@ -326,10 +329,9 @@ void app_main()
 
     g_InfoManager.InitManager();
 
-    // ---- some OTA stuff
+    // ---- print some OTA stuff
 
-    //const esp_partition_t *l_part = esp_ota_get_running_partition();
-    //g_AppLogger.Log("ESP OTA Running partition %s",l_part->label);
+    g_OTAManager.logOTAInfo();
 
     // ---- init config storage
 
@@ -366,7 +368,11 @@ void app_main()
             esp_restart();
         }
         
-    }      
+    }     
+
+    // ---- use our new cmake hack to get a more precise compile time. Good for OTA testing. 
+
+    g_AppLogger.Log("App compile time: " _TIMEZ_);
 
     // ---- init netif lib
 

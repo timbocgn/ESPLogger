@@ -17,5 +17,5 @@ Backend
 + set hostname to esplogger or device name, but not to espressif
 + handle multiple sensors on one I2C bus (check if bus has been initialized already)
 + fix race condition: mqtt tries to send data while wifi is not connected. Ugly messages in log
-- implement OTA feature
++ implement OTA feature
 

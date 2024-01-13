@@ -29,10 +29,13 @@ function updateData()
 
     items.value = ret_value.data.log_entries
  
-  })
+  }).catch(function (error) 
+    {
+      // --- just suppress this error. Will update anyway in a few secs
+    }) 
 }
 
-// ---- file upload functions for the UI
+// ---- low level routine actually asynchronously posting the file to the esp web server
 
 function rawUploadFile(file, onUploadProgress) 
 {
@@ -45,9 +48,19 @@ function rawUploadFile(file, onUploadProgress)
         "Content-Type": "multipart/form-data"
       },
       onUploadProgress
+    }).catch(function (error) 
+    {
+      if (error.response) 
+      {
+        // --- in case of an error, provide some user information in the text
+
+        message.value   = error.response.data
+        progress.value  = 0
+      } 
     });
   }
 
+// ---- called when the user hits the upload button
 
 function upload() 
 {
@@ -60,14 +73,26 @@ function upload()
   message.value = "";
 
   rawUploadFile(currentFile.value,(event) => {
-        progress.value = Math.round((100 * event.loaded) / event.total);
+
+        console.log(event)
+
+
+        if (event.progress == 1)
+        {
+          progress.value = 0;
+          message.value  = "Firmware uploaded successfully. Please wait 30 seconds and reload the browser page."
+        }
+        else
+        {
+          progress.value = Math.round((100 * event.loaded) / event.total);
+        }
       })
 }
 
+// ---- called when the user has selected a file. copy the file array to currentfile
+
 function selectFile(event) 
 {
-  console.log(event.target.files[0].name);
-
   progress.value    = 0;
   currentFile.value = event.target.files[0];
   message.value     = "";

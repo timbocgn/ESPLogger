@@ -58,6 +58,7 @@
 #include "config_manager_defines.h"
 #include "mqtt_manager.h"
 #include "applogger.h"
+#include "ota_manager.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -759,7 +760,7 @@ static esp_err_t upload_firmware_handler(httpd_req_t *req)
 {
     rest_server_context *l_ctx_ptr = (rest_server_context *)req->user_ctx;
     
-    ESP_LOGI(REST_TAG,"upload_firmware_handler: content length %d",req->content_len);
+    g_AppLogger.Log("Firmware upload started (length %d)",req->content_len);
 
     // ---- block the change of g_FirmwareUpload_in_Progress atomically as otherwise users could trick the
     //      code by hitting upload rapidly
@@ -786,14 +787,17 @@ static esp_err_t upload_firmware_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-   // --- check if we have enough space to process full post request
+    // --- start transferring the chunks provided by the http client
 
-    int total_len   = req->content_len;
-    int cur_len     = 0;
-    char *buf       = l_ctx_ptr->scratch;
+    int total_len           = req->content_len;
+    int cur_len             = 0;
+    char *buf               = l_ctx_ptr->scratch;
+    int received            = 0;
+    int f_skipped_mp_header = false;
 
+    // --- let the OTA manager know
 
-    int received = 0;
+    g_OTAManager.StartOTATransfer();
 
     // --- okay, now read the full request
 
@@ -802,6 +806,8 @@ static esp_err_t upload_firmware_handler(httpd_req_t *req)
         received = httpd_req_recv(req, buf, SCRATCH_BUFSIZE);
         if (received <= 0) 
         {
+            g_AppLogger.Log("Error during firmware upload");
+
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to upload firmware image");
             g_FirmwareUpload_in_Progress = false;
             
@@ -812,20 +818,88 @@ static esp_err_t upload_firmware_handler(httpd_req_t *req)
 
         cur_len += received;
 
-        // --- now do something with the received buffer
+        // --- we need to skip the multipart header here. We do this by searching for 0d0a0d0a in the buffer.
+        //     The byte after the last 0a is the first byte of the new image
 
-        //ESP_LOGI(REST_TAG,"Received chunk len %d total received %d",received,cur_len);
+        bool l_add_chunk_result = false;
+
+        // --- did we already skip the frame header?
+
+        if (!f_skipped_mp_header)
+        {
+            // --- no, we still got to do this. Parse the received buffer for 0x0D 0A 0D 0A
+
+            char *l_findptr             = buf;
+            bool  l_found_magic_string  = false;
+            int   l_counter             = received - 4;
+
+            while (!l_found_magic_string && l_counter > 0)
+            {
+                // --- check at the new position, if the magic word starts there
+
+                if (l_findptr[0] == 0xd && l_findptr[1] == 0xa && l_findptr[2] == 0xd && l_findptr[3] == 0xa)
+                {
+                    // ---- yes, found it! 
+
+                    f_skipped_mp_header = true;
+
+                    // ---- give the OTA manager the first chunk skipping the whole multipart header
+
+                    l_add_chunk_result = g_OTAManager.AddOTAChunk(l_findptr + 4,l_counter);
+
+                    l_found_magic_string = true;
+                }
+
+                ++l_findptr;
+                --l_counter;
+            }
+
+            // --- if we reached the end of the buffer, the provided buffer is malformed since it did not contain a 0d0a0d0a
+
+            if (!l_counter)
+            {
+                g_AppLogger.Log("Error while processing the firmware (multipart header missing)");
+
+                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Error while processing the firmware (multipart header missing)");
+                g_FirmwareUpload_in_Progress = false;                
+            }
+        }
+        else
+        {
+            // --- yes we skipped. We just have to pass the rest of the file to the ota manager
+
+            l_add_chunk_result = g_OTAManager.AddOTAChunk(buf,received);
+        }
+
+        // --- check if the g_OTAManager.AddOTAChunk worked....
+
+        if (!l_add_chunk_result)
+        {
+            // --- something went wrong
+
+            g_AppLogger.Log("Error while processing the firmware");
+
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Error while processing the firmware");
+            g_FirmwareUpload_in_Progress = false;
+            
+            return ESP_FAIL;
+        }
+
     }
 
-    ESP_LOGI(REST_TAG,"Received total received %d",cur_len);
+    g_AppLogger.Log("Successfully received a new firmware image");
 
-     // --- we're done now!
+    // --- we're done now!
 
-  g_FirmwareUpload_in_Progress = false;
+    g_FirmwareUpload_in_Progress = false;
 
     // --- send status to server
 
     httpd_resp_sendstr(req, "Post control value successfully");
+    
+    // --- now the OTA manager has to process (this will reset the system)
+
+    g_OTAManager.FinishOTATransfer();
     
     return ESP_OK;
 }
