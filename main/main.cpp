@@ -61,6 +61,7 @@
 #include "config_manager_defines.h"
 #include "mqtt_manager.h"
 #include "applogger.h"
+#include "esp_partition.h"
 
 #define CONFIG_EXAMPLE_WEB_MOUNT_POINT "/www"
 
@@ -325,13 +326,18 @@ void app_main()
 
     g_InfoManager.InitManager();
 
+    // ---- some OTA stuff
+
+    //const esp_partition_t *l_part = esp_ota_get_running_partition();
+    //g_AppLogger.Log("ESP OTA Running partition %s",l_part->label);
+
     // ---- init config storage
 
     ESP_LOGI(TAG,"Initialize ConfigManager");
 
     ESP_ERROR_CHECK(g_ConfigManager.InitConfigManager());
 
-    ESP_LOGI(TAG,"Config %s -> %d",CFMGR_BOOTSTRAP_DONE, g_ConfigManager.GetIntValue(CFMGR_BOOTSTRAP_DONE));
+    //ESP_LOGI(TAG,"Config %s -> %d",CFMGR_BOOTSTRAP_DONE, g_ConfigManager.GetIntValue(CFMGR_BOOTSTRAP_DONE));
 
     // --- check for the user pressing the bootstrap key (on startup)
 

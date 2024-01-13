@@ -289,7 +289,7 @@ static esp_err_t rest_common_get_handler(httpd_req_t *req)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-static esp_err_t dust_data_get_handler(httpd_req_t *req)
+static esp_err_t sensor_data_get_handler(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "application/json");
 
@@ -298,7 +298,7 @@ static esp_err_t dust_data_get_handler(httpd_req_t *req)
     char *l_sensorint = strrchr(req->uri,'/');
     if (!l_sensorint)
     {
-        ESP_LOGE(REST_TAG, "dust_data_get_handler: Illegal URI");
+        ESP_LOGE(REST_TAG, "sensor_data_get_handler: Illegal URI");
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Illegal URI");
         return ESP_FAIL;
     }
@@ -311,7 +311,7 @@ static esp_err_t dust_data_get_handler(httpd_req_t *req)
 
     if (l_sensor_idx < 1 || l_sensor_idx > SENSOR_CONFIG_SENSOR_CNT)
     {
-        ESP_LOGE(REST_TAG, "dust_data_get_handler: Illegal sensor index %d",l_sensor_idx);
+        ESP_LOGE(REST_TAG, "sensor_data_get_handler: Illegal sensor index %d",l_sensor_idx);
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Illegal sensor index");
         return ESP_FAIL;
     }
@@ -334,7 +334,7 @@ static esp_err_t dust_data_get_handler(httpd_req_t *req)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-static esp_err_t dust_cnt_get_handler(httpd_req_t *req)
+static esp_err_t sensor_cnt_get_handler(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "application/json");
 
@@ -749,6 +749,103 @@ static esp_err_t config_post_handler(httpd_req_t *req)
     
     return ESP_OK;
 }
+
+///////////////////////////////////////////////////////////////////////////////////////
+
+portMUX_TYPE g_FirmwareUpload_Spinlock = portMUX_INITIALIZER_UNLOCKED;
+bool g_FirmwareUpload_in_Progress = false;
+
+static esp_err_t upload_firmware_handler(httpd_req_t *req)
+{
+    rest_server_context *l_ctx_ptr = (rest_server_context *)req->user_ctx;
+    
+    ESP_LOGI(REST_TAG,"upload_firmware_handler: content length %d",req->content_len);
+
+    // ---- block the change of g_FirmwareUpload_in_Progress atomically as otherwise users could trick the
+    //      code by hitting upload rapidly
+
+    bool l_fault;
+    taskENTER_CRITICAL(&g_FirmwareUpload_Spinlock);
+    if (g_FirmwareUpload_in_Progress)
+    {
+        l_fault = true;
+    }
+    else
+    {
+        l_fault = false;
+        g_FirmwareUpload_in_Progress = true;
+
+    }
+    taskEXIT_CRITICAL(&g_FirmwareUpload_Spinlock);
+
+   // --- block multiple concurrent uploads
+
+    if (l_fault)
+    {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Firmware upload is in progress");
+        return ESP_FAIL;
+    }
+
+   // --- check if we have enough space to process full post request
+
+    int total_len   = req->content_len;
+    int cur_len     = 0;
+    char *buf       = l_ctx_ptr->scratch;
+
+
+    int received = 0;
+
+    // --- okay, now read the full request
+
+    while (cur_len < total_len) 
+    {
+        received = httpd_req_recv(req, buf, SCRATCH_BUFSIZE);
+        if (received <= 0) 
+        {
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to upload firmware image");
+            g_FirmwareUpload_in_Progress = false;
+            
+            return ESP_FAIL;
+        }
+
+        // --- update total length
+
+        cur_len += received;
+
+        // --- now do something with the received buffer
+
+        //ESP_LOGI(REST_TAG,"Received chunk len %d total received %d",received,cur_len);
+    }
+
+    ESP_LOGI(REST_TAG,"Received total received %d",cur_len);
+
+     // --- we're done now!
+
+  g_FirmwareUpload_in_Progress = false;
+
+    // --- send status to server
+
+    httpd_resp_sendstr(req, "Post control value successfully");
+    
+    return ESP_OK;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+httpd_uri_t apscan_uri_items[] =
+{
+    { "/api/v1/apscan", HTTP_GET, config_apscan_handler, NULL },
+    { "/api/v1/version", HTTP_GET, config_version_handler, NULL },
+    { "/api/v1/log/*", HTTP_GET, config_log_handler, NULL },
+    { "/api/v1/config", HTTP_GET, config_get_handler, NULL },
+    { "/api/v1/config", HTTP_POST, config_post_handler, NULL },
+    { "/api/v1/sensorcnt", HTTP_GET, sensor_cnt_get_handler, NULL },
+    { "/api/v1/air/*", HTTP_GET, sensor_data_get_handler, NULL },
+    { "/upload", HTTP_POST, upload_firmware_handler, NULL },
+    {  "/*", HTTP_GET, rest_common_get_handler, NULL },
+
+};
+
 ////////////////////////////////////////////////////////////////////////////////////////
 
 esp_err_t start_rest_server(const char *base_path)
@@ -764,10 +861,15 @@ esp_err_t start_rest_server(const char *base_path)
     
     strlcpy(rest_context->base_path, base_path, sizeof(rest_context->base_path));
 
+        // --- how many URIs to configure?
+
+    const int l_num_config = sizeof(apscan_uri_items) / sizeof(httpd_uri_t);
+
     httpd_handle_t server = NULL;
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.max_resp_headers = 16;
+    config.max_uri_handlers = l_num_config;
 
     config.uri_match_fn = httpd_uri_match_wildcard;
 
@@ -778,93 +880,21 @@ esp_err_t start_rest_server(const char *base_path)
         ESP_LOGE(REST_TAG, "Start server failed");
     }
 
-    // ---- URI handler for getting the ap scan
 
-    httpd_uri_t config_apscan_uri;
-    
-    config_apscan_uri.uri      = "/api/v1/apscan";
-    config_apscan_uri.user_ctx = rest_context;
-    config_apscan_uri.method   = HTTP_GET;
-    config_apscan_uri.handler  = config_apscan_handler;
-    
-    httpd_register_uri_handler(server, &config_apscan_uri);
 
-    // ---- URI handler for getting the firmware app version
+    ESP_LOGI(REST_TAG,"Found %d URI configurations",l_num_config);
 
-    httpd_uri_t config_version_uri;
-    
-    config_version_uri.uri      = "/api/v1/version";
-    config_version_uri.user_ctx = rest_context;
-    config_version_uri.method   = HTTP_GET;
-    config_version_uri.handler  = config_version_handler;
-    
-    httpd_register_uri_handler(server, &config_version_uri);
+    for (int i=0;i < l_num_config;++i)
+    {
+        apscan_uri_items[i].user_ctx = rest_context;
 
-    // ---- URI handler for getting the logfile contents
-
-    httpd_uri_t config_log_uri;
-    
-    config_log_uri.uri      = "/api/v1/log/*";
-    config_log_uri.user_ctx = rest_context;
-    config_log_uri.method   = HTTP_GET;
-    config_log_uri.handler  = config_log_handler;
-    
-    httpd_register_uri_handler(server, &config_log_uri);
-
-    // ---- URI handler for getting the current configuration
-
-    httpd_uri_t config_get_uri;
-    
-    config_get_uri.uri      = "/api/v1/config";
-    config_get_uri.user_ctx = rest_context;
-    config_get_uri.method   = HTTP_GET;
-    config_get_uri.handler  = config_get_handler;
-    
-    httpd_register_uri_handler(server, &config_get_uri);
-
-    // ---- URI handler for setting the current configuration
-
-    httpd_uri_t config_post_uri;
-    
-    config_post_uri.uri      = "/api/v1/config";
-    config_post_uri.user_ctx = rest_context;
-    config_post_uri.method   = HTTP_POST;
-    config_post_uri.handler  = config_post_handler;
-    
-    httpd_register_uri_handler(server, &config_post_uri);
-
-    // ---- URI handler for getting the number iof sensors
-
-    httpd_uri_t dust_cnt_get_uri;
-    
-    dust_cnt_get_uri.uri      = "/api/v1/sensorcnt";
-    dust_cnt_get_uri.user_ctx = rest_context;
-    dust_cnt_get_uri.method   = HTTP_GET;
-    dust_cnt_get_uri.handler  = dust_cnt_get_handler;
-    
-    httpd_register_uri_handler(server, &dust_cnt_get_uri);
-
-    // ---- URI handler for getting dust
-
-    httpd_uri_t dust_data_get_uri;
-    
-    dust_data_get_uri.uri      = "/api/v1/air/*";
-    dust_data_get_uri.user_ctx = rest_context;
-    dust_data_get_uri.method   = HTTP_GET;
-    dust_data_get_uri.handler  = dust_data_get_handler;
-    
-    httpd_register_uri_handler(server, &dust_data_get_uri);
-
-    // ---- URI handler for getting web server files 
-
-    httpd_uri_t common_get_uri;
-    
-    common_get_uri.uri      = "/*";
-    common_get_uri.user_ctx = rest_context;
-    common_get_uri.method   = HTTP_GET;
-    common_get_uri.handler  = rest_common_get_handler;
-    
-    httpd_register_uri_handler(server, &common_get_uri);
+        ESP_LOGI(REST_TAG,"Register URI path '%s'",apscan_uri_items[i].uri);
+        if (httpd_register_uri_handler(server, &apscan_uri_items[i]) != ESP_OK)
+        {
+            ESP_LOGE(REST_TAG,"Error registering URI handler '%s'",apscan_uri_items[i].uri);
+            return ESP_ERR_NOT_SUPPORTED;
+        }
+    }
 
     return ESP_OK;
 }

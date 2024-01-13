@@ -3,7 +3,20 @@
 import { getCurrentInstance,ref } from "vue"
 import axios from 'axios'
 
+// --- these are the log items
+
 var items = ref()
+
+// --- we will use this to get the backend version asynchronously 
+
+var backend_version = ref()
+var backend_version_loaded = ref(false)
+
+// --- file upload vars 
+
+var currentFile = ref()
+var progress = ref(0)
+var message = ref("");
 
 // ---- this function is called periodically to get the log file contents
 
@@ -16,13 +29,50 @@ function updateData()
 
     items.value = ret_value.data.log_entries
  
-})
-} 
+  })
+}
 
-// --- we will use this to get the backend version asynchronously 
+// ---- file upload functions for the UI
 
-var backend_version = ref()
-var backend_version_loaded = ref(false)
+function rawUploadFile(file, onUploadProgress) 
+{
+    let formData = new FormData();
+
+    formData.append("file", file);
+
+    return axios.post("/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data"
+      },
+      onUploadProgress
+    });
+  }
+
+
+function upload() 
+{
+  if (!currentFile.value) 
+  {
+    message.value = "Please select a file!";
+    return;
+  }
+
+  message.value = "";
+
+  rawUploadFile(currentFile.value,(event) => {
+        progress.value = Math.round((100 * event.loaded) / event.total);
+      })
+}
+
+function selectFile(event) 
+{
+  console.log(event.target.files[0].name);
+
+  progress.value    = 0;
+  currentFile.value = event.target.files[0];
+  message.value     = "";
+
+}
 
 // --- we get the app version from the global properties - see main.js for explanation
 
@@ -121,6 +171,47 @@ timer = setInterval(updateData , 1000);
 
               </v-table>
           </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <v-row> 
+      <v-col>
+        <v-card title="Upload Firmware"> 
+
+          <v-table density="compact"><tbody>
+            <tr>
+              <td>
+                <v-progress-linear v-if="progress != 0"
+                  v-model="progress"
+                  color="light-blue"
+                  height="25"
+                  reactive>
+                  <strong>{{ progress }} %</strong>
+                </v-progress-linear>
+              </td>             
+            </tr>
+
+            <tr>
+              <td>
+                <v-file-input show-size label="Select new firmware image" @change="selectFile"></v-file-input>
+              </td>             
+            </tr>
+
+            <tr>
+              <td>
+                <v-btn color="success" dark small @click="upload">Upload</v-btn>
+              </td>             
+            </tr>
+            
+            <tr>
+              <td>
+                <v-alert v-if="message" color="blue-grey" dark>
+                  {{ message }}
+                </v-alert>
+              </td>             
+            </tr>
+          </tbody></v-table>
         </v-card>
       </v-col>
     </v-row>
