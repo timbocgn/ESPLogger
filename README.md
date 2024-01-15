@@ -2,13 +2,16 @@
 
 ESP32 based IoT Device for air quality logging featuring an MQTT client and REST API access. 
 
-It works in conjunction with the VINDRIKTNING air sensor from IKEA which can be hacked to become an 
-IoT by this or by an SHT1x sensor which reports temperature and humidity.
+It works in conjunction with the VINDRIKTNING air sensor from IKEA which can be hacked to become an IoT by this or by an SHT1x sensor which reports temperature and humidity.
+
+Other sensors can be added by implementing a sensor driver class.
 
 It features a bootstrapping mechanism opening a local wireless hotspot for connecting it to your
 favorite wireless lan and has also an MQTT provider build in, which you can use to log the data.
 
 You also can leverage the API calls to configure the device and get the sensor data to your favorite application.
+
+This app supersedes the ESPTemplogger and ESPDustLogger app as it joins their functionality.
     
 ## Getting Started
 
@@ -29,6 +32,8 @@ export IDF_PATH=<your IDF path>/esp-idf
 
 source $IDF_PATH/export.sh
 ```
+
+Currently (Jan 2024) the code is based on 5.2-beta of the IDF.
 
 ### Installing and Compiling
 
@@ -60,7 +65,7 @@ cd ../..
 idf.py menuconfig
 ```
 
-Under "ESP Dust Logger Configuration" you will be able to define the number of sensors connected and the respective GPIO pins. Please see the wiring instructions for the bootstrap switch and the info LED.
+Under "ESP Logger Configuration" you will be able to define bootstrap switch pin and the LED pin. Sensor configuration (including pins) can be specified in `sensor_config.h`.
 
 When configured, compile and flash to your device:
 
@@ -70,7 +75,7 @@ idf.py build
 idf.py -p <your serial device> flash
 ```
 
-My WEMOS mini board (see below) is equipped with a CP2104 USB/UART converter and in my case it defaults to /dev/tty.usbserial-00E3A8A2. 
+My WEMOS mini board is equipped with a CP2104 USB/UART converter and in my case it defaults to /dev/tty.usbserial-00E3A8A2. 
 
 Please use 
 ```
@@ -90,15 +95,13 @@ idf.py -p /dev/tty.usbserial-00E3A8A2 monitor
 
 ### Bootstrap
 
-* Close the bootstrap switch for more than 10 seconds. The system reboots...
+* Close the bootstrap switch (which means pulling the GPIO pin to H" on system boot). The system reboots into bootstrap mode...
 * The LED will blink in a 500ms on - 2500ms off sequence, which indicated that the build in access point is up and running
-* Connect your system to this AP's IP-Address - the password is "let-me-in-1234"
+* Connect your system to this AP's IP-Address - the password is "let-me-in-1234". Typically the IP address of the ESP in this mode is 192.168.4.1
 * Go to the configuration page, provide your WLAN access point SSID (press 'Scan' to get a list) and provide the password
 * Reboot the system (power off and on)
 * When the LED blinks in a 100ms on - 100ms off - 100ms on - 2700ms off fashion, the system is connecting to your AP
 * When the LED blinks in a 100ms on - 2900ms off fashion, the system is connected to your AP
-
-You can configure the GPIO on which the switch is expected in the IDF menuconfig parameters
 
 ### Access the web interface
 
@@ -126,7 +129,7 @@ Please follow the vue.js guides and how to's on how to change the front end code
 
 ## Adding more sensors
 
-The sensors are added to the code using a macro based factory. Take a look at sensor_config.h to see the three devices I build with this framework.
+The sensors are added to the code using a macro based factory. Take a look at `sensor_config.h` to see the three devices I build with this framework.
 
 You can specify parameters such as GPIO or UART id by adding config variables.
 
@@ -139,6 +142,14 @@ Once you have implemented this class, you can use the factory in sensor_config.h
 Everything else is created dynamically: UI of the homepage, MQTT push formats, etc.
 
 The system is not limited to any specific type of sensor.
+
+## Over the air update
+
+The app is fully implementing the ESP-IDF facilities for providing OTA updated when the system is running. 
+
+The respective function is in the About page - just build a new `ESPLogger.bin` file and upload this to the device. Once the flash is ready, the device will reboot.
+
+Just refresh you browser (reload the web app) to access the interface again.
 
 ## Easier Development
 
@@ -179,4 +190,7 @@ This project is licensed under the MIT License.
 
 * The ESP IDF authors for the perfect source code examples they provide within their SDK
 * Bertrik Sikken for his excellent PM1006 class available on GitHub
+* John Burns (www.john.geek.nz) for parts of the SHT1x code
+* Daesung Kim for the initial work on the SHT1x code base
+
 

@@ -74,7 +74,7 @@
     "cmake.configureOnOpen": false,
     "idf.adapterTargetName": "esp32",
     "idf.flashType": "UART",
-    "idf.port": "/dev/cu.usbserial-00E3A8A2",
+    "idf.port": "/dev/cu.usbserial-00874FA8",
     "cSpell.words": [
         "appdesc",
         "APPLOGGER",
