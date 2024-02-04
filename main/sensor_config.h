@@ -43,7 +43,8 @@
 
 //#define DEVICE_ESP_TEMPLOGGER  
 //#define DEVICE_ESP_DUSTLOGGER  
-#define DEVICE_ESP_TEMPLOGGERV2
+//#define DEVICE_ESP_TEMPLOGGERV2
+#define DEVICE_ESP_DUSTLOGGERV2  
 
 // --- how many sensors do we have?
 
@@ -95,8 +96,23 @@
     #define SENSOR_CONFIG_SENSOR1_DATA  {0,0,0,0,0,0}
 
     #define SENSOR_CONFIG_SENSOR2_CLASS CBme280Sensor
-    #define SENSOR_CONFIG_SENSOR2_PINS  {GPIO_NUM_25,GPIO_NUM_26,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC}
-    #define SENSOR_CONFIG_SENSOR2_DATA  {0,1,0,0,0,0}
+    #define SENSOR_CONFIG_SENSOR2_PINS  {GPIO_NUM_23,GPIO_NUM_19,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC}
+    #define SENSOR_CONFIG_SENSOR2_DATA  {1,0,0,0,0,0}
+
+#endif
+
+#ifdef DEVICE_ESP_DUSTLOGGERV2
+
+    #define SENSOR_CONFIG_SENSOR_CNT    1
+
+    // --- for each sensor, specify the class, the pin params and the data params. Meaning of these parameter
+    //     is defined in the sensor class implementation
+
+	// --- Pins: 0: SDA 1: SCL / Data: 0: I2C port 1: I2C address (use 0x40)
+
+    #define SENSOR_CONFIG_SENSOR1_CLASS CHM3300Sensor
+    #define SENSOR_CONFIG_SENSOR1_PINS  {GPIO_NUM_27,GPIO_NUM_25,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC}
+    #define SENSOR_CONFIG_SENSOR1_DATA  {0,0x40,0,0,0,0}
 
 #endif
 

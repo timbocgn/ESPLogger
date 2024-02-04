@@ -67,6 +67,12 @@ protected:
         return m_temp_str;
     }
 
+    const char *uint_2_string(const char *f_format,const uint f_value)
+    {
+        snprintf(m_temp_str,10,f_format,f_value);
+        return m_temp_str;
+    }
+
 private:
 
     char m_temp_str[CSENSOR_MAX_TEMP_LEN];

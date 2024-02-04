@@ -43,6 +43,7 @@
 #include "vindriktning.h"
 #include "ESP32_SHT1x.h"
 #include "cbme280_sensor.h"
+#include "hm3300_sensor.h"
 
 #include "sensor_manager.h"
 #include "applogger.h"

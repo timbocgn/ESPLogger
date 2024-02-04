@@ -1,10 +1,10 @@
 
 # ----- register all source files here
 
-idf_component_register(SRCS "ESP32_SHT1x.cpp" "vindriktning.cpp" "main.cpp" 
+idf_component_register(SRCS "hm3300_sensor.cpp" "ESP32_SHT1x.cpp" "vindriktning.cpp" "main.cpp" 
                             "rest_server.cpp" "sensor_manager.cpp" "config_manager.cpp" 
                             "infomanager.cpp" "mqtt_manager.cpp" "applogger.cpp" "bme280.c"
-                            "cbme280_sensor.cpp" "ota_manager.cpp"
+                            "cbme280_sensor.cpp" "ota_manager.cpp" "hm3300_sensor.cpp"
                        INCLUDE_DIRS "." 
                        )
 
