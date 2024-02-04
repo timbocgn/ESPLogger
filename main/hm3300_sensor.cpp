@@ -179,9 +179,6 @@ bool CHM3300Sensor::PerformMeasurement(void)
 	// ---- read sensor data
 
 	uint8_t l_data[29];
-	memset(l_data,0,29);
-
-ESP_LOG_BUFFER_HEX(TAG,l_data,29);
 
 	esp_err_t l_retcode = i2c_master_read_from_device(m_i2c_port, m_dev_address, l_data, 29, 1000 / portTICK_PERIOD_MS);
 	if (l_retcode != ESP_OK)
