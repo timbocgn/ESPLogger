@@ -232,7 +232,7 @@ std::string CHM3300Sensor::GetSensorValueString(void)
 std::string CHM3300Sensor::GetSensorDescriptionString(void)
 {
 	char l_buf[200];
-	snprintf(l_buf,200,"BME280 Sensor / i2c %d on sda pin %d scl pin %d adr %d", (int)m_i2c_port,(int)m_pin_sda,(int)m_pin_scl,(int)m_dev_address);
+	snprintf(l_buf,200,"HM3300 Sensor / i2c %d on sda pin %d scl pin %d adr %d", (int)m_i2c_port,(int)m_pin_sda,(int)m_pin_scl,(int)m_dev_address);
 
 	return std::string(l_buf);
 }
